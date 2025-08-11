@@ -21,3 +21,9 @@ dev = [
     "ipykernel>=6.30.1",
     "pytest>=8.4.1",
 ]
+
+[project.entry-points.'zntrack.nodes']
+plumed-nodes = 'plumed_nodes.nodes:nodes'
+
+[project.entry-points.'zntrack.interfaces']
+plumed-nodes = 'plumed_nodes.interfaces:interfaces'

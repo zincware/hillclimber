@@ -531,3 +531,163 @@ class CoordinationNumberCV(CollectiveVariable):
             useSVG=False,
         )
         return img
+
+
+@dataclasses.dataclass
+class TorsionCV(CollectiveVariable):
+    """
+    PLUMED TORSION collective variable.
+    
+    Calculates torsional angles between groups of exactly 4 atoms.
+    Each group must contain exactly 4 atoms to define a torsion angle.
+
+    Resources
+    ---------
+    https://www.plumed.org/doc-master/user-doc/html/TORSION/
+    """
+
+    atoms: AtomSelector
+    prefix: str
+    multi_group: MultiGroupStrategyType = "first"
+
+    def get_img(self, atoms: Atoms) -> Image.Image | None:
+        """
+        Generates an image of the molecule(s) with the selected atoms for the torsion CV highlighted.
+
+        The four atoms in each torsion are colored in sequence: red, orange, yellow, green.
+
+        Returns
+        -------
+        PIL.Image.Image | None
+            A PIL Image object of the visualization, or None if atoms could not be selected.
+        """
+        groups = self.atoms.select(atoms)
+
+        if not groups or not groups[0] or len(groups[0]) != 4:
+            print("Warning: Torsion CV requires exactly 4 atoms per group for visualization.")
+            return None
+
+        # For visualization, use the first group
+        torsion_atoms = groups[0]
+
+        # Convert ASE object to RDKit and identify molecular fragments
+        mol = rdkit2ase.ase2rdkit(atoms)
+        mol_frags = Chem.GetMolFrags(mol, asMols=True)
+        frag_indices_list = Chem.GetMolFrags(mol, asMols=False)
+
+        mols_to_draw = []
+        highlights_to_draw = []
+        colors_to_draw = []
+        
+        # Colors for the 4 torsion atoms in sequence
+        colors = [
+            (1.0, 0.2, 0.2),  # red
+            (1.0, 0.6, 0.2),  # orange
+            (1.0, 1.0, 0.2),  # yellow
+            (0.2, 1.0, 0.2),  # green
+        ]
+
+        for i, frag_mol in enumerate(mol_frags):
+            local_idx_map = {
+                global_idx: local_idx
+                for local_idx, global_idx in enumerate(frag_indices_list[i])
+            }
+
+            current_highlights = {}
+
+            # Check if any of our torsion atoms are in this fragment
+            found_atoms = []
+            for j, atom_idx in enumerate(torsion_atoms):
+                if atom_idx in local_idx_map:
+                    local_idx = local_idx_map[atom_idx]
+                    current_highlights[local_idx] = colors[j]
+                    found_atoms.append(atom_idx)
+
+            # If this fragment contains any of the torsion atoms, add it for drawing
+            if current_highlights:
+                mols_to_draw.append(frag_mol)
+                highlights_to_draw.append(list(current_highlights.keys()))
+                colors_to_draw.append(current_highlights)
+
+        if not mols_to_draw:
+            return None
+
+        img = Draw.MolsToGridImage(
+            mols_to_draw,
+            molsPerRow=len(mols_to_draw),
+            subImgSize=(400, 400),
+            highlightAtomLists=highlights_to_draw,
+            highlightAtomColors=colors_to_draw,
+            useSVG=False,
+        )
+        return img
+
+    def to_plumed(self, atoms: Atoms) -> tuple[list[str], list[str]]:
+        """Generate PLUMED input string(s) for TORSION.
+
+        Returns
+        -------
+        - list of torsion labels
+        - PLUMED input strings
+        """
+        groups = self.atoms.select(atoms)
+
+        if not groups:
+            raise ValueError(f"Empty selection for torsion CV {self.prefix}")
+
+        # Validate that each group has exactly 4 atoms
+        for i, group in enumerate(groups):
+            if len(group) != 4:
+                raise ValueError(
+                    f"Torsion CV requires exactly 4 atoms per group. "
+                    f"Group {i} has {len(group)} atoms."
+                )
+
+        commands = self._generate_commands(groups)
+
+        # Extract labels from commands
+        labels = []
+        for cmd in commands:
+            if ":" in cmd and cmd.strip().startswith((self.prefix, f"{self.prefix}_")):
+                label_part = cmd.split(":")[0].strip()
+                if "TORSION" in cmd:
+                    labels.append(label_part)
+
+        return labels, commands
+
+    def _generate_commands(self, groups: list[list[int]]) -> list[str]:
+        """Generate PLUMED commands based on the multi-group strategy."""
+        commands = []
+
+        # Determine which groups to process based on multi_group strategy
+        if self.multi_group == "first":
+            process_groups = [groups[0]]
+            group_indices = [0]
+        elif self.multi_group == "all_pairs":
+            # For torsions, all_pairs doesn't make sense since each group is independent
+            process_groups = groups
+            group_indices = list(range(len(groups)))
+        elif self.multi_group == "corresponding":
+            # For torsions, this is the same as processing all groups
+            process_groups = groups
+            group_indices = list(range(len(groups)))
+        elif self.multi_group == "first_to_all":
+            # For torsions, this is the same as first
+            process_groups = [groups[0]]
+            group_indices = [0]
+        else:
+            process_groups = groups
+            group_indices = list(range(len(groups)))
+
+        # Create torsion commands
+        for i, group in enumerate(process_groups):
+            if len(process_groups) == 1:
+                torsion_label = self.prefix
+            else:
+                torsion_label = f"{self.prefix}_{group_indices[i]}"
+
+            # Convert 0-based indices to 1-based PLUMED indices
+            atom_list = ",".join(str(idx + 1) for idx in group)
+            commands.append(f"{torsion_label}: TORSION ATOMS={atom_list}")
+
+        return commands

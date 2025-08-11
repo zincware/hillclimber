@@ -77,3 +77,16 @@ class MetadynamicsBiasCollectiveVariable(Protocol):
     grid_min: float | None = None
     grid_max: float | None = None
     grid_bin: int | None = None
+
+
+__all__ = [
+    "NodeWithCalculator",
+    "AtomSelector",
+    "PlumedGenerator",
+    "CollectiveVariable",
+    "MetadynamicsBiasCollectiveVariable",
+]
+
+def interfaces() -> dict[str, list[str]]:
+    """Return a dictionary of available interfaces."""
+    return {"plumed-nodes": __all__}

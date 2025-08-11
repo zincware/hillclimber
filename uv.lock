@@ -1793,7 +1793,7 @@ sdist = { url = "https://files.pythonhosted.org/packages/f2/7a/4e3c62471b040efda
 
 [[package]]
 name = "plumed-nodes"
-version = "0.1.0a4"
+version = "0.1.0a5"
 source = { editable = "." }
 dependencies = [
     { name = "ase" },
@@ -1812,7 +1812,7 @@ dev = [
 requires-dist = [
     { name = "ase", specifier = ">=3.25.0" },
     { name = "plumed", specifier = ">=2.9.0" },
-    { name = "rdkit2ase", specifier = ">=0.1.12" },
+    { name = "rdkit2ase", specifier = ">=0.1.13" },
     { name = "zntrack", specifier = ">=0.8.9" },
 ]
 
@@ -2284,16 +2284,17 @@ wheels = [
 
 [[package]]
 name = "rdkit2ase"
-version = "0.1.12"
+version = "0.1.13"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "ase" },
+    { name = "matplotlib" },
     { name = "networkx" },
     { name = "rdkit" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/1d/30/33dd48c3c92067ce79bd79e9fda4a7759779463d0421679d360bf6998b5c/rdkit2ase-0.1.12.tar.gz", hash = "sha256:00eb950cb1f23e79276091b029f0eb2592023e5f89c6cbc1b1d5de10c018241d", size = 291359, upload-time = "2025-08-09T16:46:37.528Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/df/3a/2a92f6f4699ba1ffbf4e8382e05240dd463d39e2280d82ad85367463b69d/rdkit2ase-0.1.13.tar.gz", hash = "sha256:557d691addc967795504354706fe2dee287ae3e356d913b549dd3b1cf100dcb6", size = 292827, upload-time = "2025-08-11T15:00:54.872Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/42/3e/9f4ed3ba4f3deb9431186e385503064186be695660b60db36ab177be3bfe/rdkit2ase-0.1.12-py3-none-any.whl", hash = "sha256:fcd14d721fb3d05e960bbadbf429a63bd624b3c261b4ac7dbc3fbe71a09fc40c", size = 25603, upload-time = "2025-08-09T16:46:36.3Z" },
+    { url = "https://files.pythonhosted.org/packages/c3/03/8d5774caef8262c0b9332a6241551d03682d143fc4fb00877acf2d6168ba/rdkit2ase-0.1.13-py3-none-any.whl", hash = "sha256:26a0bcc78035c24139eb67e61e5e63d850bcb16069f2a4f3c8e6b86422e2630c", size = 26724, upload-time = "2025-08-11T15:00:53.384Z" },
 ]
 
 [[package]]
