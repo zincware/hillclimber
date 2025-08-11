@@ -43,6 +43,9 @@ class MetaDynamicsConfig:
     adaptive: str = "NONE"  # NONE, DIFF, GEOM
 
 
+# TODO: raise an error if CV labels are not unique
+# THERE SEEMS to be an issue with MetaDynamicsModel changing but ASEMD not updating?!?!
+
 class MetaDynamicsModel(zntrack.Node, NodeWithCalculator):
     config: MetaDynamicsConfig = zntrack.deps()
     data: list[ase.Atoms] = zntrack.deps()
@@ -52,7 +55,7 @@ class MetaDynamicsModel(zntrack.Node, NodeWithCalculator):
     timestep: float = zntrack.params(1.0)  # in fs, default is 1 fs
     model: NodeWithCalculator = zntrack.deps()
 
-    figures: Path = zntrack.outs_path(zntrack.nwd / "figures")
+    figures: Path = zntrack.outs_path(zntrack.nwd / "figures", independent=True)
 
     def run(self):
         self.figures.mkdir(parents=True, exist_ok=True)
@@ -147,10 +150,8 @@ class MetaDynamicsModel(zntrack.Node, NodeWithCalculator):
             )
 
         plumed_lines.append(f"metad: {' '.join(metad_parts)}")
-        # Add actions
-        for action in self.actions:
-            action_lines = action.to_plumed(atoms)
-            if not action_lines:
-                raise ValueError(f"Empty PLUMED commands for action {action}")
-            plumed_lines.extend(action_lines)
+        # Temporary until https://github.com/zincware/ZnTrack/issues/936
+        from plumed_nodes.actions import PrintCVAction
+        lines = PrintCVAction(cvs=[x.cv for x in self.bias_cvs], stride=100).to_plumed(atoms)
+        plumed_lines.extend(lines)
         return plumed_lines

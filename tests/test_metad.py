@@ -31,7 +31,7 @@ def test_distance_cv_corresponding_strategy(small_ethnol_water):
         config=meta_d_config,
         data=small_ethnol_water,
         bias_cvs=[biased_distance_cv],
-        actions=[pn.PrintCVAction(cv=distance_cv)],
+        actions=[pn.PrintCVAction(cvs=[distance_cv])],
         model=None,  # type: ignore
     )
 
@@ -44,7 +44,7 @@ def test_distance_cv_corresponding_strategy(small_ethnol_water):
         "d12_0_0: DISTANCE ATOMS=d12_g1_0_com,d12_g2_0_com",
         "d12_1_1: DISTANCE ATOMS=d12_g1_1_com,d12_g2_1_com",
         "metad: METAD ARG=d12_0_0,d12_1_1 HEIGHT=0.5 PACE=150 TEMP=300.0 FILE=HILLS ADAPTIVE=NONE BIASFACTOR=10.0 SIGMA=0.1 GRID_MIN=0.0 GRID_MAX=10.0 GRID_BIN=100",
-        "PRINT ARG=d12_0_0,d12_1_1 STRIDE=1 FILE=COLVAR",
+        "PRINT ARG=d12_0_0,d12_1_1 STRIDE=100 FILE=COLVAR",
     ]
 
 
@@ -78,6 +78,7 @@ def test_distance_cv_first_strategy(small_ethnol_water):
         config=meta_d_config,
         data=small_ethnol_water,
         bias_cvs=[biased_distance_cv],
+        actions=[pn.PrintCVAction(cvs=[distance_cv])],
         model=None,  # type: ignore
     )
 
@@ -87,4 +88,5 @@ def test_distance_cv_first_strategy(small_ethnol_water):
         "d12_g2_0_com: COM ATOMS=19,20,21",
         "d12: DISTANCE ATOMS=d12_g1_0_com,d12_g2_0_com",
         "metad: METAD ARG=d12 HEIGHT=0.5 PACE=150 TEMP=300.0 FILE=HILLS ADAPTIVE=NONE BIASFACTOR=10.0 SIGMA=0.1 GRID_MIN=0.0 GRID_MAX=10.0 GRID_BIN=100",
+        "PRINT ARG=d12 STRIDE=100 FILE=COLVAR",
     ]

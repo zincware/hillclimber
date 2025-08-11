@@ -15,14 +15,16 @@ class PrintCVAction:
 
     def to_plumed(self, atoms: ase.Atoms) -> list[str]:
         """Convert the action node to a PLUMED input string."""
-        commands = []
+        all_labels = set()
         for cv in self.cvs:
-            labels, commands = cv.to_plumed(atoms)
-            if not commands:
-                raise ValueError(f"Empty PLUMED commands for CV {cv.prefix}")
+            labels, _ = cv.to_plumed(atoms)
+            all_labels.update(labels)
 
-            print_command = (
-                f"PRINT ARG={','.join(labels)} STRIDE={self.stride} FILE={self.file}"
-            )
-            commands.append(print_command)
-        return commands
+        # Create the PRINT command with the unique labels
+        print_command = (
+            f"PRINT ARG={','.join(sorted(all_labels))} STRIDE={self.stride} FILE={self.file}"
+        )
+
+        # Return the command as a list
+        return [print_command]
+
