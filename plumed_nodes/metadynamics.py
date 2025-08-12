@@ -15,7 +15,21 @@ from plumed_nodes.interfaces import (
 
 @dataclasses.dataclass
 class MetaDBiasCV(MetadynamicsBiasCollectiveVariable):
-    """
+    """Metadynamics bias on a collective variable.
+
+    Parameters
+    ----------
+    cv : CollectiveVariable
+        The collective variable to bias.
+    sigma : float, optional
+        The width of the Gaussian potential, by default None.
+    grid_min : float, optional
+        The minimum value of the grid, by default None.
+    grid_max : float, optional
+        The maximum value of the grid, by default None.
+    grid_bin : int, optional
+        The number of bins in the grid, by default None.
+
     Resources
     ---------
     - https://www.plumed.org/doc-master/user-doc/html/METAD/
@@ -30,9 +44,28 @@ class MetaDBiasCV(MetadynamicsBiasCollectiveVariable):
 
 @dataclasses.dataclass
 class MetaDynamicsConfig:
-    """
-    Base configuration for metadynamics.
+    """Base configuration for metadynamics.
+
     This contains only the global parameters that apply to all CVs.
+
+    Parameters
+    ----------
+    height : float, optional
+        The height of the Gaussian potential in kJ/mol, by default 1.0.
+    pace : int, optional
+        The frequency of Gaussian deposition, by default 500.
+    biasfactor : float, optional
+        The bias factor for well-tempered metadynamics, by default None.
+    temp : float, optional
+        The temperature of the system in Kelvin, by default 300.0.
+    file : str, optional
+        The name of the hills file, by default "HILLS".
+    adaptive : str, optional
+        The adaptive scheme to use, by default "NONE".
+
+    Resources
+    ---------
+    - https://www.plumed.org/doc-master/user-doc/html/METAD/
     """
 
     height: float = 1.0  # kJ/mol
@@ -43,10 +76,30 @@ class MetaDynamicsConfig:
     adaptive: str = "NONE"  # NONE, DIFF, GEOM
 
 
-# TODO: raise an error if CV labels are not unique
 # THERE SEEMS to be an issue with MetaDynamicsModel changing but ASEMD not updating?!?!
 
+
 class MetaDynamicsModel(zntrack.Node, NodeWithCalculator):
+    """A metadynamics model.
+
+    Parameters
+    ----------
+    config : MetaDynamicsConfig
+        The configuration for the metadynamics simulation.
+    data : list[ase.Atoms]
+        The input data for the simulation.
+    data_idx : int, optional
+        The index of the data to use, by default -1.
+    bias_cvs : list[MetaDBiasCV], optional
+        The collective variables to bias, by default [].
+    actions : list[PlumedGenerator], optional
+        A list of actions to perform during the simulation, by default [].
+    timestep : float, optional
+        The timestep of the simulation in fs, by default 1.0.
+    model : NodeWithCalculator
+        The model to use for the simulation.
+    """
+
     config: MetaDynamicsConfig = zntrack.deps()
     data: list[ase.Atoms] = zntrack.deps()
     data_idx: int = zntrack.params(-1)

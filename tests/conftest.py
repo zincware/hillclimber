@@ -1,7 +1,6 @@
 import pytest
 import rdkit2ase
 
-import plumed_nodes
 
 
 @pytest.fixture(scope="session")
@@ -38,12 +37,3 @@ def na_cl_water():
     )
     return box.copy()
 
-@pytest.fixture(scope="session")
-def na_cl_water():
-    na_plus = rdkit2ase.smiles2conformers("[Na+]", numConfs=1)
-    cl_minus = rdkit2ase.smiles2conformers("[Cl-]", numConfs=1)
-    water = rdkit2ase.smiles2conformers("O", numConfs=1)
-    box = rdkit2ase.pack(
-        [na_plus, cl_minus, water], counts=[1, 1, 10], density=700, packmol="packmol.jl"
-    )
-    return box.copy()

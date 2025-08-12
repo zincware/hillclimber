@@ -47,7 +47,7 @@ class _BasePlumedCV(CollectiveVariable):
         """
         raise NotImplementedError
 
-    def get_img(self, atoms: Atoms, **kwargs) -> Optional[Image.Image]:
+    def get_img(self, atoms: Atoms, **kwargs) -> Image.Image:
         """
         Generates an image of the molecule(s) with selected atoms highlighted.
 
@@ -59,14 +59,19 @@ class _BasePlumedCV(CollectiveVariable):
             **kwargs: Additional arguments passed to _get_atom_highlights.
 
         Returns:
-            A PIL Image object of the visualization, or None if no atoms are highlighted.
+            A PIL Image object of the visualization.
         """
         highlight_map = self._get_atom_highlights(atoms, **kwargs)
-        if not highlight_map:
-            print("Warning: No atoms were selected for visualization.")
-            return None
-
         mol = rdkit2ase.ase2rdkit(atoms)
+
+        if not highlight_map:
+            return Draw.MolsToGridImage(
+                [mol],
+                molsPerRow=1,
+                subImgSize=(400, 400),
+                useSVG=False,
+            )
+
         mol_frags = Chem.GetMolFrags(mol, asMols=True)
         frag_indices_list = Chem.GetMolFrags(mol, asMols=False)
 
@@ -89,7 +94,12 @@ class _BasePlumedCV(CollectiveVariable):
                 colors_to_draw.append(current_highlights)
 
         if not mols_to_draw:
-            return None
+            return Draw.MolsToGridImage(
+                [mol],
+                molsPerRow=1,
+                subImgSize=(400, 400),
+                useSVG=False,
+            )
 
         return Draw.MolsToGridImage(
             mols_to_draw,

@@ -2,15 +2,22 @@ import dataclasses
 import typing as tp
 
 import ase
-import rdkit.Chem.rdchem as rdchem
 import rdkit2ase
-from rdkit import Chem
 
 from plumed_nodes.interfaces import AtomSelector
 
 
 @dataclasses.dataclass
 class IndexSelector(AtomSelector):
+    """Select atoms based on a list of indices.
+
+    Parameters
+    ----------
+    indices : list[int]
+        A list of atom indices to select.
+    """
+
+    # mostly used for debugging
     indices: list[int]
 
     def select(self, atoms: ase.Atoms) -> list[list[int]]:
@@ -19,6 +26,14 @@ class IndexSelector(AtomSelector):
 
 @dataclasses.dataclass
 class SMILESSelector(AtomSelector):
+    """Select atoms based on a SMILES string.
+
+    Parameters
+    ----------
+    smiles : str
+        The SMILES string to use for selection.
+    """
+
     smiles: str
 
     def select(self, atoms: ase.Atoms) -> list[list[int]]:
@@ -57,6 +72,9 @@ class SMARTSSelector(AtomSelector):
 
     >>> # Select only specific mapped atoms
     >>> selector = SMARTSSelection(pattern="C1[C:1]OC(=[O:1])O1")
+
+    >>> # Select 4 elements in order to define an angle
+    >>> selector = SMARTSSelection(pattern="CC(=O)N[C:1]([C:2])[C:3](=O)[N:4]C")
     """
 
     pattern: str
