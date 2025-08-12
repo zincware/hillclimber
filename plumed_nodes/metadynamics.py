@@ -93,6 +93,13 @@ class MetaDynamicsModel(zntrack.Node, NodeWithCalculator):
 
     def to_plumed(self, atoms: ase.Atoms) -> list[str]:
         """Generate PLUMED input string for the metadynamics model."""
+                # check for duplicate CV prefixes
+        cv_labels = set()
+        for bias_cv in self.bias_cvs:
+            if bias_cv.cv.prefix in cv_labels:
+                raise ValueError(f"Duplicate CV prefix found: {bias_cv.cv.prefix}")
+            cv_labels.add(bias_cv.cv.prefix)
+
         plumed_lines = []
         all_labels = []
 

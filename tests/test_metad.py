@@ -1,5 +1,5 @@
 import plumed_nodes as pn
-
+import pytest
 
 def test_distance_cv_corresponding_strategy(small_ethnol_water):
     """Test default corresponding strategy - only first groups."""
@@ -90,3 +90,39 @@ def test_distance_cv_first_strategy(small_ethnol_water):
         "metad: METAD ARG=d12 HEIGHT=0.5 PACE=150 TEMP=300.0 FILE=HILLS ADAPTIVE=NONE BIASFACTOR=10.0 SIGMA=0.1 GRID_MIN=0.0 GRID_MAX=10.0 GRID_BIN=100",
         "PRINT ARG=d12 STRIDE=100 FILE=COLVAR",
     ]
+
+def test_duplicate_cv_prefix(small_ethnol_water):
+    x1_selector = pn.SMILESSelector(smiles="CCO")
+    x2_selector = pn.SMILESSelector(smiles="O")
+
+    distance_cv = pn.DistanceCV(
+        x1=x1_selector, x2=x2_selector, prefix="d12", multi_group="first"
+    )
+
+    biased_distance_cv = pn.MetaDBiasCV(
+        cv=distance_cv,
+        sigma=0.1,
+        grid_min=0.0,
+        grid_max=10.0,
+        grid_bin=100,
+    )
+
+    meta_d_config = pn.MetaDynamicsConfig(
+        height=0.5,
+        pace=150,
+        biasfactor=10.0,
+        temp=300.0,
+        file="HILLS",
+        adaptive="NONE",
+    )
+
+    meta_d_model = pn.MetaDynamicsModel(
+        config=meta_d_config,
+        data=small_ethnol_water,
+        bias_cvs=[biased_distance_cv, biased_distance_cv], # duplicate entry
+        actions=[pn.PrintCVAction(cvs=[distance_cv])],
+        model=None,  # type: ignore
+    )
+
+    with pytest.raises(ValueError, match="Duplicate CV prefix found: d12"):
+        meta_d_model.to_plumed(small_ethnol_water)
