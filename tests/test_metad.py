@@ -25,6 +25,7 @@ def test_distance_cv_corresponding_strategy(small_ethnol_water):
         temp=300.0,
         file="HILLS",
         adaptive="NONE",
+        flush=None,
     )
 
     meta_d_model = pn.MetaDynamicsModel(
@@ -72,6 +73,7 @@ def test_distance_cv_first_strategy(small_ethnol_water):
         temp=300.0,
         file="HILLS",
         adaptive="NONE",
+        flush=100,
     )
 
     meta_d_model = pn.MetaDynamicsModel(
@@ -89,6 +91,7 @@ def test_distance_cv_first_strategy(small_ethnol_water):
         "d12: DISTANCE ATOMS=d12_g1_0_com,d12_g2_0_com",
         "metad: METAD ARG=d12 HEIGHT=0.5 PACE=150 TEMP=300.0 FILE=HILLS ADAPTIVE=NONE BIASFACTOR=10.0 SIGMA=0.1 GRID_MIN=0.0 GRID_MAX=10.0 GRID_BIN=100",
         "PRINT ARG=d12 STRIDE=100 FILE=COLVAR",
+        'FLUSH STRIDE=100',
     ]
 
 def test_duplicate_cv_prefix(small_ethnol_water):

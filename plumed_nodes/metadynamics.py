@@ -23,9 +23,9 @@ class MetaDBiasCV(MetadynamicsBiasCollectiveVariable):
         The collective variable to bias.
     sigma : float, optional
         The width of the Gaussian potential, by default None.
-    grid_min : float, optional
+    grid_min : float | str, optional
         The minimum value of the grid, by default None.
-    grid_max : float, optional
+    grid_max : float | str, optional
         The maximum value of the grid, by default None.
     grid_bin : int, optional
         The number of bins in the grid, by default None.
@@ -37,8 +37,8 @@ class MetaDBiasCV(MetadynamicsBiasCollectiveVariable):
 
     cv: CollectiveVariable
     sigma: float | None = None
-    grid_min: float | None = None
-    grid_max: float | None = None
+    grid_min: float | str | None = None
+    grid_max: float | str | None = None
     grid_bin: int | None = None
 
 
@@ -62,10 +62,14 @@ class MetaDynamicsConfig:
         The name of the hills file, by default "HILLS".
     adaptive : str, optional
         The adaptive scheme to use, by default "NONE".
+    flush : int | None
+        The frequency of flushing the output files. 
+        If None, uses the plumed default.
 
     Resources
     ---------
     - https://www.plumed.org/doc-master/user-doc/html/METAD/
+    - https://www.plumed.org/doc-master/user-doc/html/FLUSH/
     """
 
     height: float = 1.0  # kJ/mol
@@ -74,6 +78,7 @@ class MetaDynamicsConfig:
     temp: float = 300.0
     file: str = "HILLS"
     adaptive: str = "NONE"  # NONE, DIFF, GEOM
+    flush: int | None = None
 
 
 # THERE SEEMS to be an issue with MetaDynamicsModel changing but ASEMD not updating?!?!
@@ -214,4 +219,6 @@ class MetaDynamicsModel(zntrack.Node, NodeWithCalculator):
         from plumed_nodes.actions import PrintCVAction
         lines = PrintCVAction(cvs=[x.cv for x in self.bias_cvs], stride=100).to_plumed(atoms)
         plumed_lines.extend(lines)
+        if self.config.flush is not None:
+            plumed_lines.append(f"FLUSH STRIDE={self.config.flush}")
         return plumed_lines
