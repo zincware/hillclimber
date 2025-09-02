@@ -103,6 +103,31 @@ class MetaDynamicsModel(zntrack.Node, NodeWithCalculator):
         The timestep of the simulation in fs, by default 1.0.
     model : NodeWithCalculator
         The model to use for the simulation.
+
+    Example
+    -------
+    >>> import plumed_nodes as pn
+    >>> import ipsuite as ips
+    >>>
+    >>> data = ips.AddData("seed.xyz")
+    >>> cv1 = pn.DistanceCV(
+    ...     x1=pn.SMARTSSelector(pattern="[H]O[H]"),
+    ...     x2=pn.SMARTSSelector(pattern="CO[C:1]"),
+    ...     prefix="d",
+    ... )
+    >>> metad_cv1 = pn.MetaDBiasCV(
+    ...     cv=cv1, sigma=0.1, grid_min=0.0, grid_max=2.0, grid_bin=200
+    ... )
+    >>> model = pn.MetaDynamicsModel(
+    ...     config=pn.MetaDynamicsConfig(height=0.25, temp=300, pace=2000, biasfactor=10),
+    ...     bias_cvs=[metad_cv1],
+    ...     data=data.frames,
+    ...     model=ips.MACEMP(),
+    ...     timestep=0.5
+    ... )
+    >>> md = ips.ASEMD(
+    ...     model=model, data=data.frames, ...
+    ... )
     """
 
     config: MetaDynamicsConfig = zntrack.deps()
