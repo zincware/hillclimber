@@ -76,6 +76,7 @@ class _BasePlumedCV(CollectiveVariable):
         frag_indices_list = Chem.GetMolFrags(mol, asMols=False)
 
         mols_to_draw, highlights_to_draw, colors_to_draw = [], [], []
+        seen_molecules = set()
 
         for frag_mol, frag_indices in zip(mol_frags, frag_indices_list):
             local_idx_map = {
@@ -89,9 +90,16 @@ class _BasePlumedCV(CollectiveVariable):
             }
 
             if current_highlights:
-                mols_to_draw.append(frag_mol)
-                highlights_to_draw.append(list(current_highlights.keys()))
-                colors_to_draw.append(current_highlights)
+                # Create unique identifier: canonical SMILES + highlighted local indices
+                canonical_smiles = Chem.MolToSmiles(frag_mol)
+                highlighted_local_indices = tuple(sorted(current_highlights.keys()))
+                molecule_signature = (canonical_smiles, highlighted_local_indices)
+                
+                if molecule_signature not in seen_molecules:
+                    seen_molecules.add(molecule_signature)
+                    mols_to_draw.append(frag_mol)
+                    highlights_to_draw.append(list(current_highlights.keys()))
+                    colors_to_draw.append(current_highlights)
 
         if not mols_to_draw:
             return Draw.MolsToGridImage(
