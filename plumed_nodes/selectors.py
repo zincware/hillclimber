@@ -50,6 +50,13 @@ class SMARTSSelector(AtomSelector):
     flexible hydrogen handling and can work with mapped atoms for
     precise selection.
 
+    Note
+    ----
+    The selector is applied only to the first trajectory frame.  
+    Since indices can change during e.g. proton transfer, biasing specific groups (e.g. `[OH-]`) may fail.  
+    In such cases, select all `[OH2]` and `[OH-]` groups and use CoordinationNumber CVs.
+    Account for this method with all changes in chemical structure.
+
     Parameters
     ----------
     pattern : str
