@@ -321,6 +321,218 @@ class DistanceCV(_BasePlumedCV):
 
 
 @dataclass
+class AngleCV(_BasePlumedCV):
+    """
+    PLUMED ANGLE collective variable.
+
+    Calculates the angle formed by three atoms or groups of atoms. The angle is
+    computed as the angle between the vectors (x1-x2) and (x3-x2), where x2 is
+    the vertex of the angle.
+
+    Attributes:
+        x1: Selector for the first atom/group.
+        x2: Selector for the second atom/group (vertex of the angle).
+        x3: Selector for the third atom/group.
+        prefix: Label prefix for the generated PLUMED commands.
+        group_reduction: Strategy to reduce an atom group to a single point.
+        multi_group: Strategy for handling multiple groups from selectors.
+        create_virtual_sites: If True, create explicit virtual sites for COM/COG.
+
+    Resources:
+        - https://www.plumed.org/doc-master/user-doc/html/ANGLE/
+    """
+
+    x1: AtomSelector
+    x2: AtomSelector
+    x3: AtomSelector
+    prefix: str
+    group_reduction: GroupReductionStrategyType = "com"
+    multi_group: MultiGroupStrategyType = "first"
+    create_virtual_sites: bool = True
+
+    def _get_atom_highlights(
+        self, atoms: Atoms, **kwargs
+    ) -> Optional[AtomHighlightMap]:
+        groups1 = self.x1.select(atoms)
+        groups2 = self.x2.select(atoms)
+        groups3 = self.x3.select(atoms)
+
+        if not groups1 or not groups2 or not groups3:
+            return None
+
+        index_triplets = self._get_index_triplets(
+            len(groups1), len(groups2), len(groups3), self.multi_group
+        )
+        if not index_triplets:
+            return None
+
+        # Collect atoms to highlight based on group_reduction strategy
+        indices1, indices2, indices3 = set(), set(), set()
+        for i, j, k in index_triplets:
+            if self.group_reduction == "first":
+                if groups1[i]:
+                    indices1.add(groups1[i][0])
+                if groups2[j]:
+                    indices2.add(groups2[j][0])
+                if groups3[k]:
+                    indices3.add(groups3[k][0])
+            else:
+                indices1.update(groups1[i])
+                indices2.update(groups2[j])
+                indices3.update(groups3[k])
+
+        if not indices1 and not indices2 and not indices3:
+            return None
+
+        # Color atoms: red for x1, green for x2 (vertex), blue for x3
+        highlights: AtomHighlightMap = {}
+        red, green, blue = (1.0, 0.2, 0.2), (0.2, 1.0, 0.2), (0.2, 0.2, 1.0)
+
+        # Handle overlaps by prioritizing vertex (x2) coloring
+        all_indices = indices1.union(indices2).union(indices3)
+        for idx in all_indices:
+            in1, in2, in3 = idx in indices1, idx in indices2, idx in indices3
+            if in2:  # Vertex gets priority
+                highlights[idx] = green
+            elif in1 and in3:  # Overlap between x1 and x3
+                highlights[idx] = (0.5, 0.2, 0.6)  # Purple
+            elif in1:
+                highlights[idx] = red
+            elif in3:
+                highlights[idx] = blue
+        return highlights
+
+    def to_plumed(self, atoms: Atoms) -> Tuple[List[str], List[str]]:
+        """
+        Generates PLUMED input strings for the ANGLE CV.
+
+        Returns:
+            A tuple containing a list of CV labels and a list of PLUMED commands.
+        """
+        groups1 = self.x1.select(atoms)
+        groups2 = self.x2.select(atoms)
+        groups3 = self.x3.select(atoms)
+
+        if not groups1 or not groups2 or not groups3:
+            raise ValueError(f"Empty selection for angle CV '{self.prefix}'")
+
+        commands = self._generate_commands(groups1, groups2, groups3)
+        labels = self._extract_labels(commands, self.prefix, "ANGLE")
+        return labels, commands
+
+    def _generate_commands(
+        self,
+        groups1: List[List[int]],
+        groups2: List[List[int]],
+        groups3: List[List[int]],
+    ) -> List[str]:
+        """Generates all necessary PLUMED commands."""
+        commands = []
+        index_triplets = self._get_index_triplets(
+            len(groups1), len(groups2), len(groups3), self.multi_group
+        )
+
+        # Create virtual sites for groups that will be used
+        sites1, sites2, sites3 = {}, {}, {}
+        unique_indices1 = sorted({i for i, j, k in index_triplets})
+        unique_indices2 = sorted({j for i, j, k in index_triplets})
+        unique_indices3 = sorted({k for i, j, k in index_triplets})
+
+        for i in unique_indices1:
+            site, site_cmds = self._reduce_group(groups1[i], f"{self.prefix}_g1_{i}")
+            sites1[i] = site
+            commands.extend(site_cmds)
+        for j in unique_indices2:
+            site, site_cmds = self._reduce_group(groups2[j], f"{self.prefix}_g2_{j}")
+            sites2[j] = site
+            commands.extend(site_cmds)
+        for k in unique_indices3:
+            site, site_cmds = self._reduce_group(groups3[k], f"{self.prefix}_g3_{k}")
+            sites3[k] = site
+            commands.extend(site_cmds)
+
+        # Create the final ANGLE commands
+        for i, j, k in index_triplets:
+            label = (
+                self.prefix
+                if len(index_triplets) == 1
+                else f"{self.prefix}_{i}_{j}_{k}"
+            )
+            cmd = self._make_angle_command(sites1[i], sites2[j], sites3[k], label)
+            commands.append(cmd)
+
+        return commands
+
+    def _reduce_group(
+        self, group: List[int], site_prefix: str
+    ) -> Tuple[SiteIdentifier, List[str]]:
+        """Reduces a single atom group to a site identifier based on strategy."""
+        if len(group) == 1 or self.group_reduction == "first":
+            return str(group[0] + 1), []
+        if self.group_reduction == "all":
+            return group, []
+
+        if self.group_reduction in ["com", "cog"]:
+            if self.create_virtual_sites:
+                label = f"{site_prefix}_{self.group_reduction}"
+                cmd = self._create_virtual_site_command(
+                    group, self.group_reduction, label
+                )
+                return label, [cmd]
+            return group, []  # Use group directly if not creating virtual sites
+
+        raise ValueError(f"Unknown group reduction strategy: {self.group_reduction}")
+
+    def _make_angle_command(
+        self,
+        site1: SiteIdentifier,
+        site2: SiteIdentifier,
+        site3: SiteIdentifier,
+        label: str,
+    ) -> str:
+        """Creates a single PLUMED ANGLE command string."""
+
+        def _format(site):
+            return (
+                ",".join(map(str, (s + 1 for s in site)))
+                if isinstance(site, list)
+                else site
+            )
+
+        s1_str, s2_str, s3_str = _format(site1), _format(site2), _format(site3)
+
+        # PLUMED ANGLE always uses ATOMS=a1,a2,a3 format
+        # where a2 is the vertex of the angle
+        return f"{label}: ANGLE ATOMS={s1_str},{s2_str},{s3_str}"
+
+    @staticmethod
+    def _get_index_triplets(
+        len1: int, len2: int, len3: int, strategy: MultiGroupStrategyType
+    ) -> List[Tuple[int, int, int]]:
+        """Determines triplets of group indices based on the multi-group strategy."""
+        if strategy == "first":
+            return [(0, 0, 0)] if len1 > 0 and len2 > 0 and len3 > 0 else []
+        if strategy == "all_pairs":
+            return [
+                (i, j, k)
+                for i in range(len1)
+                for j in range(len2)
+                for k in range(len3)
+            ]
+        if strategy == "corresponding":
+            n = min(len1, len2, len3)
+            return [(i, i, i) for i in range(n)]
+        if strategy == "first_to_all":
+            # First group from x1 and x2, all from x3
+            return (
+                [(0, 0, k) for k in range(len3)]
+                if len1 > 0 and len2 > 0
+                else []
+            )
+        raise ValueError(f"Unknown multi-group strategy: {strategy}")
+
+
+@dataclass
 class CoordinationNumberCV(_BasePlumedCV):
     """
     PLUMED COORDINATION collective variable.
