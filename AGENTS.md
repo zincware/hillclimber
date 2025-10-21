@@ -5,6 +5,20 @@ This package uses numpy style docstrings and type hinting.
 Use `t.Literal[]` instead of plain strings for fixed options.
 To run tests, use `uv run pytest tests/`.
 There must be unit tests added for all new functionality!
+The test should expect the full output like
+```
+expected = [
+        "d12_g1_0_com: COM ATOMS=1,2,3,4,5,6,7,8,9",
+        "d12_g2_0_com: COM ATOMS=19,20,21",
+        "d12: DISTANCE ATOMS=d12_g1_0_com,d12_g2_0_com",
+    ]
+
+assert plumed_str == expected
+```
+and not just parts of it, e.g.
+```
+assert any("COM ATOMS=1,2,3,4,5,6,7,8,9" in cmd for cmd in plumed_str)
+```
 
 The goal of the package is to provide abstractions for collective variables and biases and to interface with ASE and ZnTrack.
 
