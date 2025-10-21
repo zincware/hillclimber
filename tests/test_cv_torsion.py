@@ -27,7 +27,7 @@ def test_torsion_cv_validation_error():
     atoms = rdkit2ase.smiles2atoms("CC")
     
     # Create selector with wrong number of atoms (only 2)
-    selector = pn.IndexSelector(indices=[0, 1])
+    selector = pn.IndexSelector(indices=[[0, 1]])
     
     torsion_cv = pn.TorsionCV(
         atoms=selector, 

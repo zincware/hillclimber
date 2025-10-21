@@ -1793,7 +1793,7 @@ sdist = { url = "https://files.pythonhosted.org/packages/f2/7a/4e3c62471b040efda
 
 [[package]]
 name = "plumed-nodes"
-version = "0.1.0a5"
+version = "0.1.0a6"
 source = { editable = "." }
 dependencies = [
     { name = "ase" },

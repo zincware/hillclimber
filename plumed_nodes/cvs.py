@@ -192,14 +192,43 @@ class DistanceCV(_BasePlumedCV):
         groups1 = self.x1.select(atoms)
         groups2 = self.x2.select(atoms)
 
-        if not groups1 or not groups1[0] or not groups2 or not groups2[0]:
+        if not groups1 or not groups2:
             return None
 
-        # For visualization, highlight the first atom of the first group from each selector.
-        return {
-            groups1[0][0]: (1.0, 0.2, 0.2),  # Red
-            groups2[0][0]: (0.2, 0.2, 1.0),  # Blue
-        }
+        index_pairs = self._get_index_pairs(len(groups1), len(groups2), self.multi_group)
+        if not index_pairs:
+            return None
+
+        # Correctly select atoms based on the group_reduction strategy
+        indices1, indices2 = set(), set()
+        for i, j in index_pairs:
+            # Handle the 'first' atom case specifically for highlighting
+            if self.group_reduction == "first":
+                # Ensure the group is not empty before accessing the first element
+                if groups1[i]:
+                    indices1.add(groups1[i][0])
+                if groups2[j]:
+                    indices2.add(groups2[j][0])
+            # For other strategies (com, cog, all), highlight the whole group
+            else:
+                indices1.update(groups1[i])
+                indices2.update(groups2[j])
+
+        if not indices1 and not indices2:
+            return None
+
+        # Color atoms based on group membership, with purple for overlaps.
+        highlights: AtomHighlightMap = {}
+        red, blue, purple = (1.0, 0.2, 0.2), (0.2, 0.2, 1.0), (1.0, 0.2, 1.0)
+        for idx in indices1.union(indices2):
+            in1, in2 = idx in indices1, idx in indices2
+            if in1 and in2:
+                highlights[idx] = purple
+            elif in1:
+                highlights[idx] = red
+            elif in2:
+                highlights[idx] = blue
+        return highlights
 
     def to_plumed(self, atoms: Atoms) -> Tuple[List[str], List[str]]:
         """
@@ -545,4 +574,73 @@ class TorsionCV(_BasePlumedCV):
             label = self.prefix if len(indices_to_process) == 1 else f"{self.prefix}_{i}"
             atom_list = ",".join(str(idx + 1) for idx in groups[i])
             commands.append(f"{label}: TORSION ATOMS={atom_list}")
+        return commands
+
+
+# TODO: we might need to set weights because plumed does not know about the atomistic weights?
+@dataclass
+class RadiusOfGyrationCV(_BasePlumedCV):
+    """
+    PLUMED GYRATION collective variable.
+
+    Calculates the radius of gyration of a group of atoms. The radius of gyration
+    is a measure of the size of a molecular system.
+
+    Attributes:
+        atoms: Selector for the atoms to include in the gyration calculation.
+        prefix: Label prefix for the generated PLUMED commands.
+        multi_group: Strategy for handling multiple groups from the selector.
+        type: The type of gyration tensor to use ("RADIUS" for scalar Rg, "GTPC_1", etc.)
+
+    Resources:
+        - https://www.plumed.org/doc-master/user-doc/html/GYRATION/
+    """
+
+    atoms: AtomSelector
+    prefix: str
+    multi_group: MultiGroupStrategyType = "first"
+    type: str = "RADIUS"  # Options: RADIUS, GTPC_1, GTPC_2, GTPC_3, ASPHERICITY, ACYLINDRICITY, KAPPA2, etc.
+
+    def _get_atom_highlights(
+        self, atoms: Atoms, **kwargs
+    ) -> Optional[AtomHighlightMap]:
+        groups = self.atoms.select(atoms)
+        if not groups or not groups[0]:
+            return None
+
+        # Highlight all atoms in the first group with a single color
+        group = groups[0]
+        return {atom_idx: (0.2, 0.8, 0.2) for atom_idx in group}  # Green
+
+    def to_plumed(self, atoms: Atoms) -> Tuple[List[str], List[str]]:
+        """
+        Generates PLUMED input strings for the GYRATION CV.
+
+        Returns:
+            A tuple containing a list of CV labels and a list of PLUMED commands.
+        """
+        groups = self.atoms.select(atoms)
+        if not groups:
+            raise ValueError(f"Empty selection for gyration CV '{self.prefix}'")
+
+        commands = self._generate_commands(groups)
+        labels = self._extract_labels(commands, self.prefix, "GYRATION")
+        return labels, commands
+
+    def _generate_commands(self, groups: List[List[int]]) -> List[str]:
+        """Generates all necessary PLUMED commands."""
+        # For gyration, 'multi_group' determines how many groups to process.
+        if self.multi_group in ["first", "first_to_all"] and groups:
+            indices_to_process = [0]
+        else:  # "all_pairs" and "corresponding" imply processing all independent groups.
+            indices_to_process = list(range(len(groups)))
+
+        commands = []
+        for i in indices_to_process:
+            label = self.prefix if len(indices_to_process) == 1 else f"{self.prefix}_{i}"
+            atom_list = ",".join(str(idx + 1) for idx in groups[i])
+            command = f"{label}: GYRATION ATOMS={atom_list}"
+            if self.type != "RADIUS":
+                command += f" TYPE={self.type}"
+            commands.append(command)
         return commands

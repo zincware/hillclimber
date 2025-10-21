@@ -9,19 +9,22 @@ from plumed_nodes.interfaces import AtomSelector
 
 @dataclasses.dataclass
 class IndexSelector(AtomSelector):
-    """Select atoms based on a list of indices.
+    """Select atoms based on grouped indices.
 
     Parameters
     ----------
-    indices : list[int]
-        A list of atom indices to select.
+    indices : list[list[int]]
+        A list of atom index groups to select. Each inner list represents
+        a group of atoms (e.g., a molecule). For example:
+        - [[0, 1], [2, 3]] selects two groups: atoms [0,1] and atoms [2,3]
+        - [[0], [1]] selects two single-atom groups
     """
 
     # mostly used for debugging
-    indices: list[int]
+    indices: list[list[int]]
 
     def select(self, atoms: ase.Atoms) -> list[list[int]]:
-        return [[x] for x in self.indices]
+        return self.indices
 
 
 @dataclasses.dataclass

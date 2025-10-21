@@ -102,8 +102,8 @@ def test_distance_cv_single_atoms():
     """Test with single atom selections."""
     atoms = ase.Atoms("H2", positions=[[0, 0, 0], [1, 0, 0]])
 
-    x1_selector = pn.IndexSelector(indices=[0])
-    x2_selector = pn.IndexSelector(indices=[1])
+    x1_selector = pn.IndexSelector(indices=[[0]])
+    x2_selector = pn.IndexSelector(indices=[[1]])
 
     distance_cv = pn.DistanceCV(x1=x1_selector, x2=x2_selector, prefix="h_h")
 

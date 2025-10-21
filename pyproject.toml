@@ -1,6 +1,6 @@
 [project]
 name = "plumed-nodes"
-version = "0.1.0a5"
+version = "0.1.0a6"
 description = "Python interfaces for the plumed library."
 readme = "README.md"
 requires-python = ">=3.11"
