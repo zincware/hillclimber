@@ -1,4 +1,4 @@
-import plumed_nodes as pn
+import hillclimber as pn
 import pytest
 
 def test_distance_cv_corresponding_strategy(small_ethnol_water):

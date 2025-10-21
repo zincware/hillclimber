@@ -11,7 +11,7 @@ from rdkit import Chem
 from rdkit.Chem import Draw
 
 # Local
-from plumed_nodes.interfaces import AtomSelector, CollectiveVariable
+from hillclimber.interfaces import AtomSelector, CollectiveVariable
 
 
 # --- TYPE HINTS ---

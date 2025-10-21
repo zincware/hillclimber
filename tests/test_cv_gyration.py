@@ -1,7 +1,7 @@
 import ase
 import pytest
 
-import plumed_nodes as pn
+import hillclimber as pn
 
 
 def test_gyration_cv_basic(small_ethnol_water):

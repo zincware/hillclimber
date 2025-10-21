@@ -1,6 +1,6 @@
 import rdkit2ase
 import pytest
-import plumed_nodes as pn
+import hillclimber as pn
 
 
 def test_torsion_cv_with_peptide():

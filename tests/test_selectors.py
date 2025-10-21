@@ -1,4 +1,4 @@
-import plumed_nodes as pn
+import hillclimber as pn
 
 
 def test_index_selector(ethanol_water):

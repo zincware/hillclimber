@@ -4,8 +4,8 @@ from pathlib import Path
 import ase.units
 import zntrack
 
-from plumed_nodes.calc import NonOverwritingPlumed
-from plumed_nodes.interfaces import (
+from hillclimber.calc import NonOverwritingPlumed
+from hillclimber.interfaces import (
     CollectiveVariable,
     MetadynamicsBiasCollectiveVariable,
     NodeWithCalculator,
@@ -106,7 +106,7 @@ class MetaDynamicsModel(zntrack.Node, NodeWithCalculator):
 
     Example
     -------
-    >>> import plumed_nodes as pn
+    >>> import hillclimber as pn
     >>> import ipsuite as ips
     >>>
     >>> data = ips.AddData("seed.xyz")
@@ -241,7 +241,7 @@ class MetaDynamicsModel(zntrack.Node, NodeWithCalculator):
 
         plumed_lines.append(f"metad: {' '.join(metad_parts)}")
         # Temporary until https://github.com/zincware/ZnTrack/issues/936
-        from plumed_nodes.actions import PrintCVAction
+        from hillclimber.actions import PrintCVAction
         lines = PrintCVAction(cvs=[x.cv for x in self.bias_cvs], stride=100).to_plumed(atoms)
         plumed_lines.extend(lines)
         if self.config.flush is not None:

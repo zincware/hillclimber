@@ -1,4 +1,4 @@
-import plumed_nodes as pn
+import hillclimber as pn
 
 def test_coordination_cv_na_water_smiles(na_cl_water):
     """Test default FIRST strategy - only first groups."""

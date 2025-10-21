@@ -2,7 +2,7 @@ import dataclasses
 
 import ase
 
-from plumed_nodes.interfaces import CollectiveVariable
+from hillclimber.interfaces import CollectiveVariable
 
 
 @dataclasses.dataclass

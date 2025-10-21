@@ -4,7 +4,7 @@ import typing as tp
 import ase
 import rdkit2ase
 
-from plumed_nodes.interfaces import AtomSelector
+from hillclimber.interfaces import AtomSelector
 
 
 @dataclasses.dataclass

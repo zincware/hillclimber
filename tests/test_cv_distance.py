@@ -1,6 +1,6 @@
 import ase
 
-import plumed_nodes as pn
+import hillclimber as pn
 
 
 def test_distance_cv_first_strategy(small_ethnol_water):

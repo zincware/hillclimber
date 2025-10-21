@@ -1,7 +1,7 @@
 [project]
-name = "plumed-nodes"
-version = "0.1.0a6"
-description = "Python interfaces for the plumed library."
+name = "hillclimber"
+version = "0.1.0a1"
+description = "Python interfaces for the plumed library with enhanced sampling."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
@@ -23,7 +23,7 @@ dev = [
 ]
 
 [project.entry-points.'zntrack.nodes']
-plumed-nodes = 'plumed_nodes.nodes:nodes'
+hillclimber = 'hillclimber.nodes:nodes'
 
 [project.entry-points.'zntrack.interfaces']
-plumed-nodes = 'plumed_nodes.interfaces:interfaces'
+hillclimber = 'hillclimber.interfaces:interfaces'

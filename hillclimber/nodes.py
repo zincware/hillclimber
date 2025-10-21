@@ -1,6 +1,6 @@
-from plumed_nodes import __all__
+from hillclimber import __all__
 
 
 def nodes() -> dict[str, list[str]]:
     """Return all available nodes."""
-    return {"plumed-nodes": __all__}
+    return {"hillclimber": __all__}
