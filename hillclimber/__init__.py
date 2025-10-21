@@ -1,10 +1,11 @@
-from hillclimber.actions import PrintCVAction
+from hillclimber.actions import PrintAction
+from hillclimber.biases import RestraintBias, UpperWallBias, LowerWallBias
 from hillclimber.cvs import DistanceCV, CoordinationNumberCV, TorsionCV, RadiusOfGyrationCV
-from hillclimber.metadynamics import MetaDBiasCV, MetaDynamicsConfig, MetaDynamicsModel
+from hillclimber.metadynamics import MetadBias, MetaDynamicsConfig, MetaDynamicsModel
 from hillclimber.selectors import IndexSelector, SMARTSSelector, SMILESSelector
 
 __all__ = [
-    "PrintCVAction",
+    "PrintAction",
     "DistanceCV",
     "CoordinationNumberCV",
     "TorsionCV",
@@ -13,6 +14,9 @@ __all__ = [
     "SMILESSelector",
     "SMARTSSelector",
     "MetaDynamicsModel",
-    "MetaDBiasCV",
+    "MetadBias",
     "MetaDynamicsConfig",
+    "RestraintBias",
+    "UpperWallBias",
+    "LowerWallBias",
 ]

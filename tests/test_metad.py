@@ -10,7 +10,7 @@ def test_distance_cv_corresponding_strategy(small_ethnol_water):
         x1=x1_selector, x2=x2_selector, prefix="d12", multi_group="corresponding"
     )
 
-    biased_distance_cv = pn.MetaDBiasCV(
+    biased_distance_cv = pn.MetadBias(
         cv=distance_cv,
         sigma=0.1,
         grid_min=0.0,
@@ -32,7 +32,7 @@ def test_distance_cv_corresponding_strategy(small_ethnol_water):
         config=meta_d_config,
         data=small_ethnol_water,
         bias_cvs=[biased_distance_cv],
-        actions=[pn.PrintCVAction(cvs=[distance_cv])],
+        actions=[pn.PrintAction(cvs=[distance_cv], stride=100)],
         model=None,  # type: ignore
     )
 
@@ -58,7 +58,7 @@ def test_distance_cv_first_strategy(small_ethnol_water):
         x1=x1_selector, x2=x2_selector, prefix="d12", multi_group="first"
     )
 
-    biased_distance_cv = pn.MetaDBiasCV(
+    biased_distance_cv = pn.MetadBias(
         cv=distance_cv,
         sigma=0.1,
         grid_min=0.0,
@@ -80,7 +80,7 @@ def test_distance_cv_first_strategy(small_ethnol_water):
         config=meta_d_config,
         data=small_ethnol_water,
         bias_cvs=[biased_distance_cv],
-        actions=[pn.PrintCVAction(cvs=[distance_cv])],
+        actions=[pn.PrintAction(cvs=[distance_cv], stride=100)],
         model=None,  # type: ignore
     )
 
@@ -102,7 +102,7 @@ def test_duplicate_cv_prefix(small_ethnol_water):
         x1=x1_selector, x2=x2_selector, prefix="d12", multi_group="first"
     )
 
-    biased_distance_cv = pn.MetaDBiasCV(
+    biased_distance_cv = pn.MetadBias(
         cv=distance_cv,
         sigma=0.1,
         grid_min=0.0,
@@ -123,7 +123,7 @@ def test_duplicate_cv_prefix(small_ethnol_water):
         config=meta_d_config,
         data=small_ethnol_water,
         bias_cvs=[biased_distance_cv, biased_distance_cv], # duplicate entry
-        actions=[pn.PrintCVAction(cvs=[distance_cv])],
+        actions=[],  # PrintCVAction is automatically added
         model=None,  # type: ignore
     )
 

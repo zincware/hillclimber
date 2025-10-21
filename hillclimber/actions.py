@@ -2,12 +2,38 @@ import dataclasses
 
 import ase
 
-from hillclimber.interfaces import CollectiveVariable
+from hillclimber.interfaces import CollectiveVariable, PlumedGenerator
 
 
 @dataclasses.dataclass
-class PrintCVAction:
-    """Node for PRINT action."""
+class PrintAction(PlumedGenerator):
+    """PLUMED PRINT action for outputting collective variables.
+
+    This action prints the values of collective variables to a file during
+    the simulation. Multiple CVs can be printed to the same file.
+
+    Parameters
+    ----------
+    cvs : list[CollectiveVariable]
+        List of collective variables to print.
+    stride : int, optional
+        Print every N steps, by default 1.
+    file : str, optional
+        Output file name, by default "COLVAR".
+
+    Examples
+    --------
+    >>> import hillclimber as hc
+    >>> print_action = hc.PrintAction(
+    ...     cvs=[cv1, cv2, cv3],
+    ...     stride=100,
+    ...     file="COLVAR"
+    ... )
+
+    Resources
+    ---------
+    - https://www.plumed.org/doc-master/user-doc/html/_p_r_i_n_t.html
+    """
 
     cvs: list[CollectiveVariable]
     stride: int = 1

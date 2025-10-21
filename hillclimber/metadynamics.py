@@ -7,15 +7,14 @@ import zntrack
 from hillclimber.calc import NonOverwritingPlumed
 from hillclimber.interfaces import (
     CollectiveVariable,
-    MetadynamicsBiasCollectiveVariable,
     NodeWithCalculator,
     PlumedGenerator,
 )
 
 
 @dataclasses.dataclass
-class MetaDBiasCV(MetadynamicsBiasCollectiveVariable):
-    """Metadynamics bias on a collective variable.
+class MetadBias:
+    """Metadynamics bias configuration for a collective variable.
 
     Parameters
     ----------
@@ -115,7 +114,7 @@ class MetaDynamicsModel(zntrack.Node, NodeWithCalculator):
     ...     x2=pn.SMARTSSelector(pattern="CO[C:1]"),
     ...     prefix="d",
     ... )
-    >>> metad_cv1 = pn.MetaDBiasCV(
+    >>> metad_cv1 = pn.MetadBias(
     ...     cv=cv1, sigma=0.1, grid_min=0.0, grid_max=2.0, grid_bin=200
     ... )
     >>> model = pn.MetaDynamicsModel(
@@ -133,7 +132,7 @@ class MetaDynamicsModel(zntrack.Node, NodeWithCalculator):
     config: MetaDynamicsConfig = zntrack.deps()
     data: list[ase.Atoms] = zntrack.deps()
     data_idx: int = zntrack.params(-1)
-    bias_cvs: list[MetaDBiasCV] = zntrack.deps(default_factory=list)
+    bias_cvs: list[MetadBias] = zntrack.deps(default_factory=list)
     actions: list[PlumedGenerator] = zntrack.deps(default_factory=list)
     timestep: float = zntrack.params(1.0)  # in fs, default is 1 fs
     model: NodeWithCalculator = zntrack.deps()
@@ -240,10 +239,13 @@ class MetaDynamicsModel(zntrack.Node, NodeWithCalculator):
             )
 
         plumed_lines.append(f"metad: {' '.join(metad_parts)}")
-        # Temporary until https://github.com/zincware/ZnTrack/issues/936
-        from hillclimber.actions import PrintCVAction
-        lines = PrintCVAction(cvs=[x.cv for x in self.bias_cvs], stride=100).to_plumed(atoms)
-        plumed_lines.extend(lines)
+
+        # Add any additional actions (restraints, walls, print actions, etc.)
+        for action in self.actions:
+            action_lines = action.to_plumed(atoms)
+            plumed_lines.extend(action_lines)
+
+        # Add FLUSH if configured
         if self.config.flush is not None:
             plumed_lines.append(f"FLUSH STRIDE={self.config.flush}")
         return plumed_lines
