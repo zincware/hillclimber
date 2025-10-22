@@ -1,3 +1,4 @@
+"""Tests for AngleCV using the new API with VirtualAtom and flatten/strategy parameters."""
 import ase
 
 import hillclimber as pn
@@ -9,23 +10,23 @@ def test_angle_cv_first_strategy(small_ethnol_water):
     x2_selector = pn.SMILESSelector(smiles="O")  # Water (oxygen)
     x3_selector = pn.SMARTSSelector(pattern="[C]")  # Carbon atoms
 
+    # Old API: group_reduction="com", multi_group="first"
+    # New API: Use VirtualAtom with "com", strategy="first" is default
     angle_cv = pn.AngleCV(
-        x1=x1_selector,
-        x2=x2_selector,
-        x3=x3_selector,
+        x1=pn.VirtualAtom(x1_selector[0], "com"),
+        x2=pn.VirtualAtom(x2_selector[0], "com"),
+        x3=pn.VirtualAtom(x3_selector[0], "com"),
         prefix="angle",
-        multi_group="first",
     )
 
     labels, plumed_str = angle_cv.to_plumed(small_ethnol_water)
 
     expected = [
-        "angle_g1_0_com: COM ATOMS=1,2",
-        "angle_g2_0_com: COM ATOMS=19,20,21",
-        "angle_g3_0_com: COM ATOMS=1,2",
-        "angle: ANGLE ATOMS=angle_g1_0_com,angle_g2_0_com,angle_g3_0_com",
+        "angle_x1: COM ATOMS=1,2",
+        "angle_x2: COM ATOMS=19,20,21",
+        "angle_x3: COM ATOMS=1,2",
+        "angle: ANGLE ATOMS=angle_x1,angle_x2,angle_x3",
     ]
-
     assert plumed_str == expected
     assert labels == ["angle"]
 
@@ -51,23 +52,22 @@ def test_angle_cv_single_atoms():
 
 
 def test_angle_cv_first_atom_reduction(small_ethnol_water):
-    """Test FIRST_ATOM reduction strategy."""
+    """Test FIRST_ATOM reduction strategy using selector indexing."""
     x1_selector = pn.SMARTSSelector(pattern="[C]")
     x2_selector = pn.SMILESSelector(smiles="O")
     x3_selector = pn.SMARTSSelector(pattern="[C]")
 
+    # Old API: group_reduction="first", multi_group="first"
+    # New API: Use selector[:][0] to get first atom of each group
     angle_cv = pn.AngleCV(
-        x1=x1_selector,
-        x2=x2_selector,
-        x3=x3_selector,
+        x1=x1_selector[0][0],  # First atom of first carbon group
+        x2=x2_selector[0][0],  # First atom of first water
+        x3=x3_selector[0][0],  # First atom of first carbon group
         prefix="angle",
-        group_reduction="first",
-        multi_group="first",
     )
 
     labels, plumed_str = angle_cv.to_plumed(small_ethnol_water)
 
-    # Should use first atom of each group
     expected = ["angle: ANGLE ATOMS=1,19,1"]
     assert plumed_str == expected
     assert labels == ["angle"]
@@ -79,136 +79,139 @@ def test_angle_cv_cog_reduction(small_ethnol_water):
     x2_selector = pn.SMILESSelector(smiles="O")
     x3_selector = pn.SMARTSSelector(pattern="[C]")
 
+    # Old API: group_reduction="cog", multi_group="first"
+    # New API: Use VirtualAtom with "cog"
     angle_cv = pn.AngleCV(
-        x1=x1_selector,
-        x2=x2_selector,
-        x3=x3_selector,
+        x1=pn.VirtualAtom(x1_selector[0], "cog"),
+        x2=pn.VirtualAtom(x2_selector[0], "cog"),
+        x3=pn.VirtualAtom(x3_selector[0], "cog"),
         prefix="angle",
-        group_reduction="cog",
-        multi_group="first",
     )
 
     labels, plumed_str = angle_cv.to_plumed(small_ethnol_water)
 
-    # Should use CENTER instead of COM
     expected = [
-        "angle_g1_0_cog: CENTER ATOMS=1,2",
-        "angle_g2_0_cog: CENTER ATOMS=19,20,21",
-        "angle_g3_0_cog: CENTER ATOMS=1,2",
-        "angle: ANGLE ATOMS=angle_g1_0_cog,angle_g2_0_cog,angle_g3_0_cog",
+        "angle_x1: CENTER ATOMS=1,2",
+        "angle_x2: CENTER ATOMS=19,20,21",
+        "angle_x3: CENTER ATOMS=1,2",
+        "angle: ANGLE ATOMS=angle_x1,angle_x2,angle_x3",
     ]
-
     assert plumed_str == expected
     assert labels == ["angle"]
 
 
 def test_angle_cv_all_pairs(small_ethnol_water):
-    """Test ALL_PAIRS strategy - all combinations."""
+    """Test ALL strategy - all combinations."""
     # Use simpler selectors to reduce output
     x1_selector = pn.IndexSelector(indices=[[0], [3]])  # Two single atoms
     x2_selector = pn.IndexSelector(indices=[[6]])  # One vertex atom
     x3_selector = pn.IndexSelector(indices=[[0], [3]])  # Two single atoms
 
+    # Old API: multi_group="all_pairs"
+    # New API: strategy="all", flatten=False to preserve groups
     angle_cv = pn.AngleCV(
         x1=x1_selector,
         x2=x2_selector,
         x3=x3_selector,
         prefix="a",
-        multi_group="all_pairs",
+        strategy="all",
+        flatten=False,
     )
 
     labels, plumed_str = angle_cv.to_plumed(small_ethnol_water)
 
-    # Should create 2x1x2=4 angles
+    # Smart GROUP creation: single atoms used directly (no GROUP commands)
     expected = [
         "a_0_0_0: ANGLE ATOMS=1,7,1",
         "a_0_0_1: ANGLE ATOMS=1,7,4",
         "a_1_0_0: ANGLE ATOMS=4,7,1",
         "a_1_0_1: ANGLE ATOMS=4,7,4",
     ]
-
     assert plumed_str == expected
     assert labels == ["a_0_0_0", "a_0_0_1", "a_1_0_0", "a_1_0_1"]
 
 
 def test_angle_cv_corresponding(small_ethnol_water):
-    """Test CORRESPONDING strategy - pair by index."""
+    """Test DIAGONAL strategy - pair by index."""
     x1_selector = pn.IndexSelector(indices=[[0], [3], [6]])
     x2_selector = pn.IndexSelector(indices=[[1], [4], [7]])
     x3_selector = pn.IndexSelector(indices=[[2], [5], [8]])
 
+    # Old API: multi_group="corresponding"
+    # New API: strategy="diagonal", flatten=False to preserve groups
     angle_cv = pn.AngleCV(
         x1=x1_selector,
         x2=x2_selector,
         x3=x3_selector,
         prefix="a",
-        multi_group="corresponding",
+        strategy="diagonal",
+        flatten=False,
     )
 
     labels, plumed_str = angle_cv.to_plumed(small_ethnol_water)
 
+    # Smart GROUP creation: single atoms used directly (no GROUP commands)
     expected = [
         "a_0_0_0: ANGLE ATOMS=1,2,3",
         "a_1_1_1: ANGLE ATOMS=4,5,6",
         "a_2_2_2: ANGLE ATOMS=7,8,9",
     ]
-
     assert plumed_str == expected
     assert labels == ["a_0_0_0", "a_1_1_1", "a_2_2_2"]
 
 
 def test_angle_cv_first_to_all(small_ethnol_water):
-    """Test FIRST_TO_ALL strategy - first of x1 and x2, all of x3."""
+    """Test one-to-many strategy - first of x1 and x2, all of x3."""
     x1_selector = pn.IndexSelector(indices=[[0]])
     x2_selector = pn.IndexSelector(indices=[[6]])
     x3_selector = pn.IndexSelector(indices=[[1], [2], [3]])
 
+    # Use flatten=False to preserve x3 groups, automatically creates one-to-many
     angle_cv = pn.AngleCV(
         x1=x1_selector,
         x2=x2_selector,
         x3=x3_selector,
         prefix="a",
-        multi_group="first_to_all",
+        flatten=False,
     )
 
     labels, plumed_str = angle_cv.to_plumed(small_ethnol_water)
 
+    # Smart GROUP creation: single atoms used directly (no GROUP commands)
     expected = [
         "a_0_0_0: ANGLE ATOMS=1,7,2",
         "a_0_0_1: ANGLE ATOMS=1,7,3",
         "a_0_0_2: ANGLE ATOMS=1,7,4",
     ]
-
     assert plumed_str == expected
     assert labels == ["a_0_0_0", "a_0_0_1", "a_0_0_2"]
 
 
 def test_angle_cv_no_virtual_sites(small_ethnol_water):
-    """Test with create_virtual_sites=False (should fail for multi-atom groups)."""
+    """Test with flatten=True (direct atom lists, no virtual sites)."""
     x1_selector = pn.SMARTSSelector(pattern="[C]")
     x2_selector = pn.SMILESSelector(smiles="O")
     x3_selector = pn.SMARTSSelector(pattern="[C]")
 
+    # Old API: create_virtual_sites=False
+    # New API: Use selectors directly with flatten=True (default)
     angle_cv = pn.AngleCV(
-        x1=x1_selector,
-        x2=x2_selector,
-        x3=x3_selector,
+        x1=x1_selector[0],
+        x2=x2_selector[0],
+        x3=x3_selector[0],
         prefix="angle",
-        create_virtual_sites=False,
-        multi_group="first",
+        flatten=True,
     )
 
     labels, plumed_str = angle_cv.to_plumed(small_ethnol_water)
 
-    # Without virtual sites, groups are passed directly (not supported by PLUMED ANGLE)
-    # This tests the code path, even if the output might not be valid PLUMED
     expected = ["angle: ANGLE ATOMS=1,2,19,20,21,1,2"]
     assert plumed_str == expected
     assert labels == ["angle"]
 
 
 def test_angle_cv_visualization(small_ethnol_water):
-    """Test that visualization works without errors."""
+    """Test that get_img works (even without _get_atom_highlights implemented)."""
     x1_selector = pn.IndexSelector(indices=[[0]])
     x2_selector = pn.IndexSelector(indices=[[6]])
     x3_selector = pn.IndexSelector(indices=[[18]])

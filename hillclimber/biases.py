@@ -45,7 +45,7 @@ class RestraintBias(BiasProtocol):
 
     Resources
     ---------
-    - https://www.plumed.org/doc-master/user-doc/html/RESTRAINT.html
+    - https://www.plumed.org/doc-master/user-doc/html/RESTRAINT/
 
     Notes
     -----
@@ -131,7 +131,7 @@ class UpperWallBias(BiasProtocol):
 
     Resources
     ---------
-    - https://www.plumed.org/doc-master/user-doc/html/UPPER_WALLS.html
+    - https://www.plumed.org/doc-master/user-doc/html/UPPER_WALLS/
 
     Notes
     -----
@@ -231,7 +231,7 @@ class LowerWallBias(BiasProtocol):
 
     Resources
     ---------
-    - https://www.plumed.org/doc-master/user-doc/html/LOWER_WALLS.html
+    - https://www.plumed.org/doc-master/user-doc/html/LOWER_WALLS
 
     Notes
     -----

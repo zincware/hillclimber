@@ -32,7 +32,7 @@ class PrintAction(PlumedGenerator):
 
     Resources
     ---------
-    - https://www.plumed.org/doc-master/user-doc/html/_p_r_i_n_t.html
+    - https://www.plumed.org/doc-master/user-doc/html/PRINT/
     """
 
     cvs: list[CollectiveVariable]

@@ -28,3 +28,5 @@ If available, reference the `https://www.plumed.org/doc-master/user-doc/html/` i
 This is a new package, backwards compatibility is not required!
 Make design decisions for good code structure and usability, not for backwards compatibility!
 Use KISS, DRY, SOLID and YAGNI principles.
+
+Ask before you create or plan summary documents!

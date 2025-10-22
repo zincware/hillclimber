@@ -1,5 +1,7 @@
 # --- IMPORTS ---
 # Standard library
+from __future__ import annotations
+import dataclasses
 from dataclasses import dataclass
 from typing import Dict, List, Literal, Optional, Tuple, Union
 
@@ -12,6 +14,7 @@ from rdkit.Chem import Draw
 
 # Local
 from hillclimber.interfaces import AtomSelector, CollectiveVariable
+from hillclimber.virtual_atoms import VirtualAtom
 
 
 # --- TYPE HINTS ---
@@ -163,61 +166,97 @@ class DistanceCV(_BasePlumedCV):
     """
     PLUMED DISTANCE collective variable.
 
-    Calculates the distance between two atoms or groups of atoms. This CV supports
-    various strategies for reducing groups to single points (e.g., center of mass)
-    and for pairing multiple groups.
+    Calculates the distance between two atoms, groups of atoms, or virtual sites.
+    Supports flexible flattening and pairing strategies for multiple groups.
 
-    Attributes:
-        x1: Selector for the first atom/group.
-        x2: Selector for the second atom/group.
-        prefix: Label prefix for the generated PLUMED commands.
-        group_reduction: Strategy to reduce an atom group to a single point.
-        multi_group: Strategy for handling multiple groups from selectors.
-        create_virtual_sites: If True, create explicit virtual sites for COM/COG.
+    Parameters
+    ----------
+    x1 : AtomSelector | VirtualAtom
+        First atom/group or virtual site.
+    x2 : AtomSelector | VirtualAtom
+        Second atom/group or virtual site.
+    prefix : str
+        Label prefix for generated PLUMED commands.
+    flatten : bool, default=True
+        For AtomSelectors only: If True, flatten all groups into single atom list.
+        If False, create PLUMED GROUP for each group. VirtualAtoms are never flattened.
+    pairwise : {"all", "diagonal", "none"}, default="all"
+        Strategy for pairing multiple groups:
+        - "all": Create all N×M pair combinations (can create many CVs!)
+        - "diagonal": Pair corresponding indices only (creates min(N,M) CVs)
+        - "none": Error if both sides have multiple groups (safety check)
 
-    Resources:
-        - https://www.plumed.org/doc-master/user-doc/html/DISTANCE.html
+    Examples
+    --------
+    >>> # Distance between two specific atoms
+    >>> dist = hc.DistanceCV(
+    ...     x1=ethanol_sel[0][0],  # First atom of first ethanol
+    ...     x2=water_sel[0][0],    # First atom of first water
+    ...     prefix="d_atoms"
+    ... )
+
+    >>> # Distance between molecule COMs
+    >>> dist = hc.DistanceCV(
+    ...     x1=hc.VirtualAtom(ethanol_sel[0], "com"),
+    ...     x2=hc.VirtualAtom(water_sel[0], "com"),
+    ...     prefix="d_com"
+    ... )
+
+    >>> # One-to-many: First ethanol COM to all water COMs
+    >>> dist = hc.DistanceCV(
+    ...     x1=hc.VirtualAtom(ethanol_sel[0], "com"),
+    ...     x2=hc.VirtualAtom(water_sel, "com"),
+    ...     prefix="d",
+    ...     pairwise="all"  # Creates 3 CVs
+    ... )
+
+    >>> # Diagonal pairing (avoid explosion)
+    >>> dist = hc.DistanceCV(
+    ...     x1=hc.VirtualAtom(water_sel, "com"),     # 3 waters
+    ...     x2=hc.VirtualAtom(ethanol_sel, "com"),   # 2 ethanols
+    ...     prefix="d",
+    ...     pairwise="diagonal"  # Creates only 2 CVs: d_0, d_1
+    ... )
+
+    Resources
+    ---------
+    - https://www.plumed.org/doc-master/user-doc/html/DISTANCE.html
+
+    Notes
+    -----
+    For backwards compatibility, old parameters are still supported but deprecated:
+    - `group_reduction` → Use VirtualAtom instead
+    - `multi_group` → Use `pairwise` parameter
     """
 
-    x1: AtomSelector
-    x2: AtomSelector
+    x1: AtomSelector | VirtualAtom
+    x2: AtomSelector | VirtualAtom
     prefix: str
-    group_reduction: GroupReductionStrategyType = "com"
-    multi_group: MultiGroupStrategyType = "first"
-    create_virtual_sites: bool = True
+    flatten: bool = True
+    pairwise: Literal["all", "diagonal", "none"] = "all"
 
     def _get_atom_highlights(
         self, atoms: Atoms, **kwargs
     ) -> Optional[AtomHighlightMap]:
+        """Get atom highlights for visualization."""
+        # Skip for VirtualAtom inputs
+        if isinstance(self.x1, VirtualAtom) or isinstance(self.x2, VirtualAtom):
+            return None
+
         groups1 = self.x1.select(atoms)
         groups2 = self.x2.select(atoms)
 
         if not groups1 or not groups2:
             return None
 
-        index_pairs = self._get_index_pairs(len(groups1), len(groups2), self.multi_group)
-        if not index_pairs:
-            return None
-
-        # Correctly select atoms based on the group_reduction strategy
-        indices1, indices2 = set(), set()
-        for i, j in index_pairs:
-            # Handle the 'first' atom case specifically for highlighting
-            if self.group_reduction == "first":
-                # Ensure the group is not empty before accessing the first element
-                if groups1[i]:
-                    indices1.add(groups1[i][0])
-                if groups2[j]:
-                    indices2.add(groups2[j][0])
-            # For other strategies (com, cog, all), highlight the whole group
-            else:
-                indices1.update(groups1[i])
-                indices2.update(groups2[j])
+        # Highlight all atoms from both selections
+        indices1 = {idx for group in groups1 for idx in group}
+        indices2 = {idx for group in groups2 for idx in group}
 
         if not indices1 and not indices2:
             return None
 
-        # Color atoms based on group membership, with purple for overlaps.
+        # Color atoms based on group membership
         highlights: AtomHighlightMap = {}
         red, blue, purple = (1.0, 0.2, 0.2), (0.2, 0.2, 1.0), (1.0, 0.2, 1.0)
         for idx in indices1.union(indices2):
@@ -231,93 +270,131 @@ class DistanceCV(_BasePlumedCV):
         return highlights
 
     def to_plumed(self, atoms: Atoms) -> Tuple[List[str], List[str]]:
-        """
-        Generates PLUMED input strings for the DISTANCE CV.
+        """Generate PLUMED input strings for the DISTANCE CV.
 
-        Returns:
-            A tuple containing a list of CV labels and a list of PLUMED commands.
+        Returns
+        -------
+        labels : list[str]
+            List of CV labels generated.
+        commands : list[str]
+            List of PLUMED command strings.
         """
-        groups1 = self.x1.select(atoms)
-        groups2 = self.x2.select(atoms)
+        commands = []
 
-        if not groups1 or not groups2:
+        # Process x1
+        labels1, cmds1 = self._process_input(self.x1, atoms, "x1")
+        commands.extend(cmds1)
+
+        # Process x2
+        labels2, cmds2 = self._process_input(self.x2, atoms, "x2")
+        commands.extend(cmds2)
+
+        # Check for empty selections
+        if not labels1 or not labels2:
             raise ValueError(f"Empty selection for distance CV '{self.prefix}'")
 
-        flat1 = {idx for group in groups1 for idx in group}
-        flat2 = {idx for group in groups2 for idx in group}
-        if flat1.intersection(flat2) and self.group_reduction not in ["com", "cog"]:
-            raise ValueError(
-                "Overlapping atoms found. This is only valid with 'com' or 'cog' reduction."
-            )
+        # Generate distance CVs based on pairwise strategy
+        cv_labels, cv_commands = self._generate_distance_cvs(labels1, labels2)
+        commands.extend(cv_commands)
 
-        commands = self._generate_commands(groups1, groups2)
-        labels = self._extract_labels(commands, self.prefix, "DISTANCE")
-        return labels, commands
+        return cv_labels, commands
 
-    def _generate_commands(
-        self, groups1: List[List[int]], groups2: List[List[int]]
-    ) -> List[str]:
-        """Generates all necessary PLUMED commands."""
-        commands = []
-        index_pairs = self._get_index_pairs(
-            len(groups1), len(groups2), self.multi_group
-        )
+    def _process_input(
+        self, input_obj: AtomSelector | VirtualAtom, atoms: Atoms, label_prefix: str
+    ) -> Tuple[List[str], List[str]]:
+        """Process an input (AtomSelector or VirtualAtom) and return labels and commands.
 
-        # Efficiently create virtual sites only for groups that will be used.
-        sites1, sites2 = {}, {}
-        unique_indices1 = sorted({i for i, j in index_pairs})
-        unique_indices2 = sorted({j for i, j in index_pairs})
-
-        for i in unique_indices1:
-            site, site_cmds = self._reduce_group(groups1[i], f"{self.prefix}_g1_{i}")
-            sites1[i] = site
-            commands.extend(site_cmds)
-        for j in unique_indices2:
-            site, site_cmds = self._reduce_group(groups2[j], f"{self.prefix}_g2_{j}")
-            sites2[j] = site
-            commands.extend(site_cmds)
-
-        # Create the final DISTANCE commands.
-        for i, j in index_pairs:
-            label = self.prefix if len(index_pairs) == 1 else f"{self.prefix}_{i}_{j}"
-            cmd = self._make_distance_command(sites1[i], sites2[j], label)
-            commands.append(cmd)
-
-        return commands
-
-    def _reduce_group(
-        self, group: List[int], site_prefix: str
-    ) -> Tuple[SiteIdentifier, List[str]]:
-        """Reduces a single atom group to a site identifier based on strategy."""
-        if len(group) == 1 or self.group_reduction == "first":
-            return str(group[0] + 1), []
-        if self.group_reduction == "all":
-            return group, []
-
-        if self.group_reduction in ["com", "cog"]:
-            if self.create_virtual_sites:
-                label = f"{site_prefix}_{self.group_reduction}"
-                cmd = self._create_virtual_site_command(
-                    group, self.group_reduction, label
+        Returns
+        -------
+        labels : list[str]
+            List of labels for this input (either virtual site labels or GROUP labels).
+        commands : list[str]
+            PLUMED commands to create the labels.
+        """
+        if isinstance(input_obj, VirtualAtom):
+            # VirtualAtom: set deterministic label if not already set
+            if input_obj.label is None:
+                # Set label based on prefix and label_prefix (x1 or x2)
+                labeled_va = dataclasses.replace(
+                    input_obj, label=f"{self.prefix}_{label_prefix}"
                 )
-                return label, [cmd]
-            return group, []  # Use group directly if not creating virtual sites
+                return labeled_va.to_plumed(atoms)
+            else:
+                return input_obj.to_plumed(atoms)
+        else:
+            # AtomSelector: handle based on flatten parameter
+            groups = input_obj.select(atoms)
+            if not groups:
+                return [], []
 
-        raise ValueError(f"Unknown group reduction strategy: {self.group_reduction}")
+            if self.flatten:
+                # Flatten all groups into single list
+                flat_atoms = [idx for group in groups for idx in group]
+                atom_list = ",".join(str(idx + 1) for idx in flat_atoms)
+                # Return as pseudo-label (will be used directly in DISTANCE command)
+                return [atom_list], []
+            else:
+                # Smart GROUP creation: only create GROUP for multi-atom groups
+                labels = []
+                commands = []
+                for i, group in enumerate(groups):
+                    if len(group) == 1:
+                        # Single atom: use directly (no GROUP needed)
+                        labels.append(str(group[0] + 1))
+                    else:
+                        # Multi-atom group: create GROUP
+                        group_label = f"{self.prefix}_{label_prefix}_g{i}"
+                        atom_list = ",".join(str(idx + 1) for idx in group)
+                        commands.append(f"{group_label}: GROUP ATOMS={atom_list}")
+                        labels.append(group_label)
+                return labels, commands
 
-    def _make_distance_command(
-        self, site1: SiteIdentifier, site2: SiteIdentifier, label: str
-    ) -> str:
-        """Creates a single PLUMED DISTANCE command string."""
+    def _generate_distance_cvs(
+        self, labels1: List[str], labels2: List[str]
+    ) -> Tuple[List[str], List[str]]:
+        """Generate DISTANCE CV commands based on pairwise strategy."""
+        n1, n2 = len(labels1), len(labels2)
 
-        def _format(site):
-            return ",".join(map(str, (s + 1 for s in site))) if isinstance(site, list) else site
+        # Determine which pairs to create based on pairwise strategy
+        if n1 == 1 and n2 == 1:
+            # One-to-one: always create single CV
+            pairs = [(0, 0)]
+        elif n1 == 1:
+            # One-to-many: pair first of x1 with all of x2
+            pairs = [(0, j) for j in range(n2)]
+        elif n2 == 1:
+            # Many-to-one: pair all of x1 with first of x2
+            pairs = [(i, 0) for i in range(n1)]
+        else:
+            # Many-to-many: apply pairwise strategy
+            if self.pairwise == "all":
+                pairs = [(i, j) for i in range(n1) for j in range(n2)]
+            elif self.pairwise == "diagonal":
+                n_pairs = min(n1, n2)
+                pairs = [(i, i) for i in range(n_pairs)]
+            elif self.pairwise == "none":
+                raise ValueError(
+                    f"Both x1 and x2 have multiple groups ({n1} and {n2}). "
+                    f"Use pairwise='all' or 'diagonal', or select specific groups with indexing."
+                )
+            else:
+                raise ValueError(f"Unknown pairwise strategy: {self.pairwise}")
 
-        s1_str, s2_str = _format(site1), _format(site2)
-        # Use ATOMS for point-like sites, ATOMS1/ATOMS2 for group-based distances
-        if isinstance(site1, str) and isinstance(site2, str):
-            return f"{label}: DISTANCE ATOMS={s1_str},{s2_str}"
-        return f"{label}: DISTANCE ATOMS1={s1_str} ATOMS2={s2_str}"
+        # Generate DISTANCE commands
+        cv_labels = []
+        commands = []
+        for idx, (i, j) in enumerate(pairs):
+            if len(pairs) == 1:
+                label = self.prefix
+            else:
+                label = f"{self.prefix}_{idx}"
+
+            # Create DISTANCE command
+            cmd = f"{label}: DISTANCE ATOMS={labels1[i]},{labels2[j]}"
+            commands.append(cmd)
+            cv_labels.append(label)
+
+        return cv_labels, commands
 
 
 @dataclass
@@ -325,34 +402,51 @@ class AngleCV(_BasePlumedCV):
     """
     PLUMED ANGLE collective variable.
 
-    Calculates the angle formed by three atoms or groups of atoms. The angle is
-    computed as the angle between the vectors (x1-x2) and (x3-x2), where x2 is
-    the vertex of the angle.
+    Calculates the angle formed by three atoms or groups of atoms using the new
+    VirtualAtom API. The angle is computed as the angle between the vectors
+    (x1-x2) and (x3-x2), where x2 is the vertex of the angle.
 
-    Attributes:
-        x1: Selector for the first atom/group.
-        x2: Selector for the second atom/group (vertex of the angle).
-        x3: Selector for the third atom/group.
-        prefix: Label prefix for the generated PLUMED commands.
-        group_reduction: Strategy to reduce an atom group to a single point.
-        multi_group: Strategy for handling multiple groups from selectors.
-        create_virtual_sites: If True, create explicit virtual sites for COM/COG.
+    Parameters
+    ----------
+    x1 : AtomSelector | VirtualAtom
+        First position. Can be an AtomSelector or VirtualAtom.
+    x2 : AtomSelector | VirtualAtom
+        Vertex position (center of the angle). Can be an AtomSelector or VirtualAtom.
+    x3 : AtomSelector | VirtualAtom
+        Third position. Can be an AtomSelector or VirtualAtom.
+    prefix : str
+        Label prefix for the generated PLUMED commands.
+    flatten : bool, default=True
+        How to handle AtomSelector inputs:
+        - True: Flatten all groups into a single list
+        - False: Create GROUP for each selector group (not typically used for ANGLE)
+    strategy : {"first", "all", "diagonal", "none"}, default="first"
+        Strategy for creating multiple angles from multiple groups:
+        - "first": Use first group from each selector (1 angle)
+        - "all": All combinations (N×M×P angles)
+        - "diagonal": Pair by index (min(N,M,P) angles)
+        - "none": Raise error if any selector has multiple groups
 
-    Resources:
-        - https://www.plumed.org/doc-master/user-doc/html/ANGLE/
+    Resources
+    ---------
+    - https://www.plumed.org/doc-master/user-doc/html/ANGLE/
     """
 
-    x1: AtomSelector
-    x2: AtomSelector
-    x3: AtomSelector
+    x1: AtomSelector | VirtualAtom
+    x2: AtomSelector | VirtualAtom
+    x3: AtomSelector | VirtualAtom
     prefix: str
-    group_reduction: GroupReductionStrategyType = "com"
-    multi_group: MultiGroupStrategyType = "first"
-    create_virtual_sites: bool = True
+    flatten: bool = True
+    strategy: Literal["first", "all", "diagonal", "none"] = "first"
 
     def _get_atom_highlights(
         self, atoms: Atoms, **kwargs
     ) -> Optional[AtomHighlightMap]:
+        """Get atom highlights for visualization."""
+        # Skip for VirtualAtom inputs
+        if isinstance(self.x1, VirtualAtom) or isinstance(self.x2, VirtualAtom) or isinstance(self.x3, VirtualAtom):
+            return None
+
         groups1 = self.x1.select(atoms)
         groups2 = self.x2.select(atoms)
         groups3 = self.x3.select(atoms)
@@ -360,26 +454,10 @@ class AngleCV(_BasePlumedCV):
         if not groups1 or not groups2 or not groups3:
             return None
 
-        index_triplets = self._get_index_triplets(
-            len(groups1), len(groups2), len(groups3), self.multi_group
-        )
-        if not index_triplets:
-            return None
-
-        # Collect atoms to highlight based on group_reduction strategy
-        indices1, indices2, indices3 = set(), set(), set()
-        for i, j, k in index_triplets:
-            if self.group_reduction == "first":
-                if groups1[i]:
-                    indices1.add(groups1[i][0])
-                if groups2[j]:
-                    indices2.add(groups2[j][0])
-                if groups3[k]:
-                    indices3.add(groups3[k][0])
-            else:
-                indices1.update(groups1[i])
-                indices2.update(groups2[j])
-                indices3.update(groups3[k])
+        # Highlight all atoms from all three selections
+        indices1 = {idx for group in groups1 for idx in group}
+        indices2 = {idx for group in groups2 for idx in group}
+        indices3 = {idx for group in groups3 for idx in group}
 
         if not indices1 and not indices2 and not indices3:
             return None
@@ -403,133 +481,155 @@ class AngleCV(_BasePlumedCV):
         return highlights
 
     def to_plumed(self, atoms: Atoms) -> Tuple[List[str], List[str]]:
-        """
-        Generates PLUMED input strings for the ANGLE CV.
+        """Generate PLUMED ANGLE command(s).
 
-        Returns:
-            A tuple containing a list of CV labels and a list of PLUMED commands.
-        """
-        groups1 = self.x1.select(atoms)
-        groups2 = self.x2.select(atoms)
-        groups3 = self.x3.select(atoms)
+        Returns
+        -------
+        labels : list[str]
+            List of CV labels created.
+        commands : list[str]
+            List of PLUMED commands.
 
-        if not groups1 or not groups2 or not groups3:
+        Raises
+        ------
+        ValueError
+            If any selector returns empty selection.
+        """
+        # Process all three inputs
+        labels1, cmds1 = self._process_input(self.x1, atoms, "x1")
+        labels2, cmds2 = self._process_input(self.x2, atoms, "x2")
+        labels3, cmds3 = self._process_input(self.x3, atoms, "x3")
+
+        # Check for empty selections
+        if not labels1 or not labels2 or not labels3:
             raise ValueError(f"Empty selection for angle CV '{self.prefix}'")
 
-        commands = self._generate_commands(groups1, groups2, groups3)
-        labels = self._extract_labels(commands, self.prefix, "ANGLE")
-        return labels, commands
-
-    def _generate_commands(
-        self,
-        groups1: List[List[int]],
-        groups2: List[List[int]],
-        groups3: List[List[int]],
-    ) -> List[str]:
-        """Generates all necessary PLUMED commands."""
         commands = []
-        index_triplets = self._get_index_triplets(
-            len(groups1), len(groups2), len(groups3), self.multi_group
-        )
+        commands.extend(cmds1)
+        commands.extend(cmds2)
+        commands.extend(cmds3)
 
-        # Create virtual sites for groups that will be used
-        sites1, sites2, sites3 = {}, {}, {}
-        unique_indices1 = sorted({i for i, j, k in index_triplets})
-        unique_indices2 = sorted({j for i, j, k in index_triplets})
-        unique_indices3 = sorted({k for i, j, k in index_triplets})
+        # Generate ANGLE commands
+        cv_labels, cv_commands = self._generate_angle_cvs(labels1, labels2, labels3)
+        commands.extend(cv_commands)
 
-        for i in unique_indices1:
-            site, site_cmds = self._reduce_group(groups1[i], f"{self.prefix}_g1_{i}")
-            sites1[i] = site
-            commands.extend(site_cmds)
-        for j in unique_indices2:
-            site, site_cmds = self._reduce_group(groups2[j], f"{self.prefix}_g2_{j}")
-            sites2[j] = site
-            commands.extend(site_cmds)
-        for k in unique_indices3:
-            site, site_cmds = self._reduce_group(groups3[k], f"{self.prefix}_g3_{k}")
-            sites3[k] = site
-            commands.extend(site_cmds)
+        return cv_labels, commands
 
-        # Create the final ANGLE commands
-        for i, j, k in index_triplets:
-            label = (
-                self.prefix
-                if len(index_triplets) == 1
-                else f"{self.prefix}_{i}_{j}_{k}"
-            )
-            cmd = self._make_angle_command(sites1[i], sites2[j], sites3[k], label)
-            commands.append(cmd)
+    def _process_input(
+        self, input_obj: AtomSelector | VirtualAtom, atoms: Atoms, label_prefix: str
+    ) -> Tuple[List[str], List[str]]:
+        """Process input (AtomSelector or VirtualAtom) and return labels and commands.
 
-        return commands
+        Same as DistanceCV._process_input() method.
 
-    def _reduce_group(
-        self, group: List[int], site_prefix: str
-    ) -> Tuple[SiteIdentifier, List[str]]:
-        """Reduces a single atom group to a site identifier based on strategy."""
-        if len(group) == 1 or self.group_reduction == "first":
-            return str(group[0] + 1), []
-        if self.group_reduction == "all":
-            return group, []
-
-        if self.group_reduction in ["com", "cog"]:
-            if self.create_virtual_sites:
-                label = f"{site_prefix}_{self.group_reduction}"
-                cmd = self._create_virtual_site_command(
-                    group, self.group_reduction, label
+        Returns
+        -------
+        labels : list[str]
+            List of labels for this input (either virtual site labels or atom lists).
+        commands : list[str]
+            PLUMED commands to create the labels.
+        """
+        if isinstance(input_obj, VirtualAtom):
+            # VirtualAtom: set deterministic label if not already set
+            if input_obj.label is None:
+                labeled_va = dataclasses.replace(
+                    input_obj, label=f"{self.prefix}_{label_prefix}"
                 )
-                return label, [cmd]
-            return group, []  # Use group directly if not creating virtual sites
+                return labeled_va.to_plumed(atoms)
+            else:
+                return input_obj.to_plumed(atoms)
+        else:
+            # AtomSelector: handle based on flatten parameter
+            groups = input_obj.select(atoms)
+            if not groups:
+                return [], []
 
-        raise ValueError(f"Unknown group reduction strategy: {self.group_reduction}")
+            if self.flatten:
+                # Flatten all groups into single list
+                flat_atoms = [idx for group in groups for idx in group]
+                atom_list = ",".join(str(idx + 1) for idx in flat_atoms)
+                # Return as pseudo-label (will be used directly in ANGLE command)
+                return [atom_list], []
+            else:
+                # Smart GROUP creation: only create GROUP for multi-atom groups
+                labels = []
+                commands = []
+                for i, group in enumerate(groups):
+                    if len(group) == 1:
+                        # Single atom: use directly (no GROUP needed)
+                        labels.append(str(group[0] + 1))
+                    else:
+                        # Multi-atom group: create GROUP
+                        group_label = f"{self.prefix}_{label_prefix}_g{i}"
+                        atom_list = ",".join(str(idx + 1) for idx in group)
+                        commands.append(f"{group_label}: GROUP ATOMS={atom_list}")
+                        labels.append(group_label)
+                return labels, commands
 
-    def _make_angle_command(
-        self,
-        site1: SiteIdentifier,
-        site2: SiteIdentifier,
-        site3: SiteIdentifier,
-        label: str,
-    ) -> str:
-        """Creates a single PLUMED ANGLE command string."""
+    def _generate_angle_cvs(
+        self, labels1: List[str], labels2: List[str], labels3: List[str]
+    ) -> Tuple[List[str], List[str]]:
+        """Generate ANGLE CV commands based on strategy.
 
-        def _format(site):
-            return (
-                ",".join(map(str, (s + 1 for s in site)))
-                if isinstance(site, list)
-                else site
-            )
+        Parameters
+        ----------
+        labels1, labels2, labels3 : list[str]
+            Labels or atom lists for the three angle positions.
 
-        s1_str, s2_str, s3_str = _format(site1), _format(site2), _format(site3)
+        Returns
+        -------
+        cv_labels : list[str]
+            Labels for the ANGLE CVs created.
+        commands : list[str]
+            ANGLE command strings.
+        """
+        n1, n2, n3 = len(labels1), len(labels2), len(labels3)
 
-        # PLUMED ANGLE always uses ATOMS=a1,a2,a3 format
-        # where a2 is the vertex of the angle
-        return f"{label}: ANGLE ATOMS={s1_str},{s2_str},{s3_str}"
+        # Determine which triplets to create based on strategy
+        if n1 == 1 and n2 == 1 and n3 == 1:
+            # One-to-one-to-one: always create single CV
+            triplets = [(0, 0, 0)]
+        elif n1 == 1 and n2 == 1:
+            # One-one-to-many: pair first of x1/x2 with all of x3
+            triplets = [(0, 0, k) for k in range(n3)]
+        elif n1 == 1 and n3 == 1:
+            # One-many-to-one: pair first of x1/x3 with all of x2
+            triplets = [(0, j, 0) for j in range(n2)]
+        elif n2 == 1 and n3 == 1:
+            # Many-to-one-one: pair all of x1 with first of x2/x3
+            triplets = [(i, 0, 0) for i in range(n1)]
+        else:
+            # Multi-way: apply strategy
+            if self.strategy == "first":
+                triplets = [(0, 0, 0)] if n1 > 0 and n2 > 0 and n3 > 0 else []
+            elif self.strategy == "all":
+                triplets = [(i, j, k) for i in range(n1) for j in range(n2) for k in range(n3)]
+            elif self.strategy == "diagonal":
+                n_triplets = min(n1, n2, n3)
+                triplets = [(i, i, i) for i in range(n_triplets)]
+            elif self.strategy == "none":
+                raise ValueError(
+                    f"Multiple groups in x1/x2/x3 ({n1}, {n2}, {n3}). "
+                    f"Use strategy='all' or 'diagonal', or select specific groups with indexing."
+                )
+            else:
+                raise ValueError(f"Unknown strategy: {self.strategy}")
 
-    @staticmethod
-    def _get_index_triplets(
-        len1: int, len2: int, len3: int, strategy: MultiGroupStrategyType
-    ) -> List[Tuple[int, int, int]]:
-        """Determines triplets of group indices based on the multi-group strategy."""
-        if strategy == "first":
-            return [(0, 0, 0)] if len1 > 0 and len2 > 0 and len3 > 0 else []
-        if strategy == "all_pairs":
-            return [
-                (i, j, k)
-                for i in range(len1)
-                for j in range(len2)
-                for k in range(len3)
-            ]
-        if strategy == "corresponding":
-            n = min(len1, len2, len3)
-            return [(i, i, i) for i in range(n)]
-        if strategy == "first_to_all":
-            # First group from x1 and x2, all from x3
-            return (
-                [(0, 0, k) for k in range(len3)]
-                if len1 > 0 and len2 > 0
-                else []
-            )
-        raise ValueError(f"Unknown multi-group strategy: {strategy}")
+        # Generate ANGLE commands
+        cv_labels = []
+        commands = []
+        for idx, (i, j, k) in enumerate(triplets):
+            if len(triplets) == 1:
+                label = self.prefix
+            else:
+                label = f"{self.prefix}_{i}_{j}_{k}"
+
+            # Create ANGLE command (ATOMS=x1,x2,x3 where x2 is vertex)
+            cmd = f"{label}: ANGLE ATOMS={labels1[i]},{labels2[j]},{labels3[k]}"
+            commands.append(cmd)
+            cv_labels.append(label)
+
+        return cv_labels, commands
 
 
 @dataclass
@@ -537,58 +637,76 @@ class CoordinationNumberCV(_BasePlumedCV):
     """
     PLUMED COORDINATION collective variable.
 
-    Calculates a coordination number based on a switching function. It supports
-    complex group definitions, including groups of virtual sites.
+    Calculates a coordination number based on a switching function using the new
+    VirtualAtom API. The coordination number is computed between two groups of atoms
+    using a switching function.
 
-    Attributes:
-        x1, x2: Selectors for the two groups of atoms.
-        prefix: Label prefix for the generated PLUMED commands.
-        r_0: The reference distance for the switching function (in Angstroms).
-        nn, mm, d_0: Parameters for the switching function.
-        group_reduction_1, group_reduction_2: Reduction strategies for each group.
-        multi_group: Strategy for handling multiple groups from selectors.
-        create_virtual_sites: If True, create explicit virtual sites for COM/COG.
+    Parameters
+    ----------
+    x1 : AtomSelector | VirtualAtom
+        First group of atoms. Can be an AtomSelector or VirtualAtom.
+    x2 : AtomSelector | VirtualAtom
+        Second group of atoms. Can be an AtomSelector or VirtualAtom.
+    prefix : str
+        Label prefix for the generated PLUMED commands.
+    r_0 : float
+        Reference distance for the switching function (in Angstroms).
+    nn : int, default=6
+        Exponent for the switching function numerator.
+    mm : int, default=0
+        Exponent for the switching function denominator.
+    d_0 : float, default=0.0
+        Offset for the switching function (in Angstroms).
+    flatten : bool, default=True
+        How to handle AtomSelector inputs:
+        - True: Flatten all groups into a single GROUP
+        - False: Create a GROUP for each selector group
+    pairwise : {"all", "diagonal", "none"}, default="all"
+        Strategy for pairing multiple groups:
+        - "all": All pairwise combinations (N×M CVs)
+        - "diagonal": Pair by index (min(N,M) CVs)
+        - "none": Raise error if both have multiple groups
 
-    Resources:
-        - https://www.plumed.org/doc-master/user-doc/html/COORDINATION.html
-        - https://www.plumed.org/doc-master/user-doc/html/GROUP.html
+    Resources
+    ---------
+    - https://www.plumed.org/doc-master/user-doc/html/COORDINATION
+    - https://www.plumed.org/doc-master/user-doc/html/GROUP
     """
 
-    x1: AtomSelector
-    x2: AtomSelector
+    x1: AtomSelector | VirtualAtom
+    x2: AtomSelector | VirtualAtom
     prefix: str
     r_0: float
     nn: int = 6
     mm: int = 0
     d_0: float = 0.0
-    group_reduction_1: GroupReductionStrategyType = "all"
-    group_reduction_2: GroupReductionStrategyType = "all"
-    multi_group: MultiGroupStrategyType = "first"
-    create_virtual_sites: bool = True
+    flatten: bool = True
+    pairwise: Literal["all", "diagonal", "none"] = "all"
 
     def _get_atom_highlights(
         self, atoms: Atoms, **kwargs
     ) -> Optional[AtomHighlightMap]:
-        highlight_hydrogens = kwargs.get("highlight_hydrogens", False)
+        """Get atom highlights for visualization."""
+        # Skip for VirtualAtom inputs
+        if isinstance(self.x1, VirtualAtom) or isinstance(self.x2, VirtualAtom):
+            return None
+
         groups1 = self.x1.select(atoms)
         groups2 = self.x2.select(atoms)
 
         if not groups1 or not groups2:
             return None
 
-        # Flatten groups and optionally filter out hydrogens.
-        indices1 = {idx for g in groups1 for idx in g}
-        indices2 = {idx for g in groups2 for idx in g}
-        if not highlight_hydrogens:
-            indices1 = {i for i in indices1 if atoms[i].symbol != "H"}
-            indices2 = {i for i in indices2 if atoms[i].symbol != "H"}
+        # Highlight all atoms from both selections
+        indices1 = {idx for group in groups1 for idx in group}
+        indices2 = {idx for group in groups2 for idx in group}
 
         if not indices1 and not indices2:
             return None
 
-        # Color atoms based on group membership, with purple for overlaps.
+        # Color atoms based on group membership
         highlights: AtomHighlightMap = {}
-        red, blue, purple = (1.0, 0.5, 0.5), (0.5, 0.5, 1.0), (1.0, 0.5, 1.0)
+        red, blue, purple = (1.0, 0.2, 0.2), (0.2, 0.2, 1.0), (1.0, 0.2, 1.0)
         for idx in indices1.union(indices2):
             in1, in2 = idx in indices1, idx in indices2
             if in1 and in2:
@@ -600,117 +718,179 @@ class CoordinationNumberCV(_BasePlumedCV):
         return highlights
 
     def to_plumed(self, atoms: Atoms) -> Tuple[List[str], List[str]]:
+        """Generate PLUMED COORDINATION command(s).
+
+        Returns
+        -------
+        labels : list[str]
+            List of CV labels created.
+        commands : list[str]
+            List of PLUMED commands.
         """
-        Generates PLUMED input strings for the COORDINATION CV.
+        # Process both inputs to get group labels
+        labels1, cmds1 = self._process_coordination_input(self.x1, atoms, "x1")
+        labels2, cmds2 = self._process_coordination_input(self.x2, atoms, "x2")
 
-        Returns:
-            A tuple containing a list of CV labels and a list of PLUMED commands.
+        commands = []
+        commands.extend(cmds1)
+        commands.extend(cmds2)
+
+        # Generate COORDINATION commands
+        cv_labels, cv_commands = self._generate_coordination_cvs(labels1, labels2)
+        commands.extend(cv_commands)
+
+        return cv_labels, commands
+
+    def _process_coordination_input(
+        self, input_obj: AtomSelector | VirtualAtom, atoms: Atoms, label_prefix: str
+    ) -> Tuple[List[str], List[str]]:
+        """Process input for COORDINATION and return group labels/commands.
+
+        For COORDINATION, we need groups (not individual points), so the processing
+        is different from DistanceCV:
+        - VirtualAtom with multiple sites → create GROUP of those sites
+        - VirtualAtom with single site → use site directly
+        - AtomSelector with flatten=True → create single group with all atoms
+        - AtomSelector with flatten=False → create GROUP for each selector group
+
+        Returns
+        -------
+        labels : list[str]
+            Group labels that can be used in COORDINATION GROUPA/GROUPB.
+        commands : list[str]
+            PLUMED commands to create those groups.
         """
-        groups1 = self.x1.select(atoms)
-        groups2 = self.x2.select(atoms)
-
-        if not groups1 or not groups2:
-            raise ValueError(f"Empty selection for coordination CV '{self.prefix}'")
-
-        commands = self._generate_commands(groups1, groups2)
-        labels = self._extract_labels(commands, self.prefix, "COORDINATION")
-        return labels, commands
-
-    def _generate_commands(
-        self, groups1: List[List[int]], groups2: List[List[int]]
-    ) -> List[str]:
-        """Generates all necessary PLUMED commands."""
-        commands: List[str] = []
-
-        sites1 = self._reduce_groups(
-            groups1, self.group_reduction_1, f"{self.prefix}_g1", commands
-        )
-        sites2 = self._reduce_groups(
-            groups2, self.group_reduction_2, f"{self.prefix}_g2", commands
-        )
-
-        # Get site pairs using a simplified helper
-        site_pairs = []
-        if self.multi_group == "first":
-            site_pairs = [(sites1[0], sites2[0])] if sites1 and sites2 else []
-        elif self.multi_group == "all_pairs":
-            site_pairs = [(s1, s2) for s1 in sites1 for s2 in sites2]
-        elif self.multi_group == "corresponding":
-            n = min(len(sites1), len(sites2))
-            site_pairs = [(sites1[i], sites2[i]) for i in range(n)]
-        elif self.multi_group == "first_to_all":
-            site_pairs = [(sites1[0], s2) for s2 in sites2] if sites1 else []
-
-        for i, (s1, s2) in enumerate(site_pairs):
-            label = self.prefix if len(site_pairs) == 1 else f"{self.prefix}_{i}"
-            commands.append(self._make_coordination_command(s1, s2, label))
-
-        return commands
-
-    def _reduce_groups(
-        self,
-        groups: List[List[int]],
-        strategy: GroupReductionStrategyType,
-        site_prefix: str,
-        commands: List[str],
-    ) -> List[SiteIdentifier]:
-        """Reduces a list of atom groups into a list of site identifiers."""
-        if strategy in ["com_per_group", "cog_per_group"]:
-            if not self.create_virtual_sites:
-                raise ValueError(f"'{strategy}' requires create_virtual_sites=True")
-
-            reduction_type = "COM" if strategy == "com_per_group" else "CENTER"
-            vsite_labels = []
-            for i, group in enumerate(groups):
-                if not group:
-                    continue
-                vsite_label = f"{site_prefix}_{i}"
-                atom_list = ",".join(str(idx + 1) for idx in group)
-                commands.append(f"{vsite_label}: {reduction_type} ATOMS={atom_list}")
-                vsite_labels.append(vsite_label)
-
-            group_label = f"{site_prefix}_group"
-            commands.append(f"{group_label}: GROUP ATOMS={','.join(vsite_labels)}")
-            return [group_label]
-
-        if strategy == "all":
-            return [sorted({idx for group in groups for idx in group})]
-
-        # Handle other strategies by reducing each group individually.
-        sites: List[SiteIdentifier] = []
-        for i, group in enumerate(groups):
-            if len(group) == 1 or strategy == "first":
-                sites.append(str(group[0] + 1))
-            elif strategy in ["com", "cog"]:
-                if self.create_virtual_sites:
-                    label = f"{site_prefix}_{i}_{strategy}"
-                    cmd = self._create_virtual_site_command(group, strategy, label)
-                    commands.append(cmd)
-                    sites.append(label)
-                else:
-                    sites.append(group)
+        if isinstance(input_obj, VirtualAtom):
+            # Set deterministic label if not already set
+            if input_obj.label is None:
+                labeled_va = dataclasses.replace(
+                    input_obj, label=f"{self.prefix}_{label_prefix}"
+                )
             else:
-                raise ValueError(f"Unsupported reduction strategy: {strategy}")
-        return sites
+                labeled_va = input_obj
 
-    def _make_coordination_command(
-        self, site1: SiteIdentifier, site2: SiteIdentifier, label: str
-    ) -> str:
-        """Creates a single PLUMED COORDINATION command string."""
+            # Get virtual site labels
+            vsite_labels, vsite_commands = labeled_va.to_plumed(atoms)
 
-        def _format(site):
-            return ",".join(map(str, (s + 1 for s in site))) if isinstance(site, list) else site
+            # If multiple virtual sites, create a GROUP of them
+            if len(vsite_labels) > 1:
+                group_label = f"{self.prefix}_{label_prefix}_group"
+                group_cmd = f"{group_label}: GROUP ATOMS={','.join(vsite_labels)}"
+                return [group_label], vsite_commands + [group_cmd]
+            else:
+                # Single virtual site, use directly
+                return vsite_labels, vsite_commands
+        else:
+            # AtomSelector: create group(s) based on flatten parameter
+            groups = input_obj.select(atoms)
+            if not groups:
+                return [], []
 
-        g_a, g_b = _format(site1), _format(site2)
-        base_cmd = f"{label}: COORDINATION GROUPA={g_a}"
-        if g_a != g_b:  # Omit GROUPB for self-coordination
-            base_cmd += f" GROUPB={g_b}"
+            if self.flatten:
+                # Flatten all groups into single group
+                flat_atoms = [idx for group in groups for idx in group]
+                # Return as list of atom indices (will be formatted in COORDINATION command)
+                return [flat_atoms], []
+            else:
+                # Smart GROUP creation: only create GROUP for multi-atom groups
+                labels = []
+                commands = []
+                for i, group in enumerate(groups):
+                    if len(group) == 1:
+                        # Single atom: use directly (no GROUP needed)
+                        labels.append(str(group[0] + 1))
+                    else:
+                        # Multi-atom group: create GROUP
+                        group_label = f"{self.prefix}_{label_prefix}_g{i}"
+                        atom_list = ",".join(str(idx + 1) for idx in group)
+                        commands.append(f"{group_label}: GROUP ATOMS={atom_list}")
+                        labels.append(group_label)
 
-        params = f" R_0={self.r_0} NN={self.nn} D_0={self.d_0}"
-        if self.mm != 0:
-            params += f" MM={self.mm}"
+                # If multiple groups, create a parent GROUP
+                if len(labels) > 1:
+                    parent_label = f"{self.prefix}_{label_prefix}_group"
+                    parent_cmd = f"{parent_label}: GROUP ATOMS={','.join(labels)}"
+                    return [parent_label], commands + [parent_cmd]
+                else:
+                    return labels, commands
 
-        return base_cmd + params
+    def _generate_coordination_cvs(
+        self, labels1: List[str | List[int]], labels2: List[str | List[int]]
+    ) -> Tuple[List[str], List[str]]:
+        """Generate COORDINATION CV commands.
+
+        Parameters
+        ----------
+        labels1, labels2 : list[str | list[int]]
+            Group labels or atom index lists for GROUPA and GROUPB.
+
+        Returns
+        -------
+        cv_labels : list[str]
+            Labels for the COORDINATION CVs created.
+        commands : list[str]
+            COORDINATION command strings.
+        """
+        n1, n2 = len(labels1), len(labels2)
+
+        # Determine which pairs to create based on pairwise strategy
+        if n1 == 1 and n2 == 1:
+            # One-to-one: always create single CV
+            pairs = [(0, 0)]
+        elif n1 == 1:
+            # One-to-many: pair first of x1 with all of x2
+            pairs = [(0, j) for j in range(n2)]
+        elif n2 == 1:
+            # Many-to-one: pair all of x1 with first of x2
+            pairs = [(i, 0) for i in range(n1)]
+        else:
+            # Many-to-many: apply pairwise strategy
+            if self.pairwise == "all":
+                pairs = [(i, j) for i in range(n1) for j in range(n2)]
+            elif self.pairwise == "diagonal":
+                n_pairs = min(n1, n2)
+                pairs = [(i, i) for i in range(n_pairs)]
+            elif self.pairwise == "none":
+                raise ValueError(
+                    f"Both x1 and x2 have multiple groups ({n1} and {n2}). "
+                    f"Use pairwise='all' or 'diagonal', or select specific groups with indexing."
+                )
+            else:
+                raise ValueError(f"Unknown pairwise strategy: {self.pairwise}")
+
+        # Generate COORDINATION commands
+        cv_labels = []
+        commands = []
+        for idx, (i, j) in enumerate(pairs):
+            if len(pairs) == 1:
+                label = self.prefix
+            else:
+                label = f"{self.prefix}_{idx}"
+
+            # Format group labels for COORDINATION
+            def format_group(g):
+                if isinstance(g, list):  # List of atom indices
+                    return ",".join(str(idx + 1) for idx in g)
+                else:  # String label
+                    return g
+
+            g_a = format_group(labels1[i])
+            g_b = format_group(labels2[j])
+
+            # Create COORDINATION command
+            cmd = f"{label}: COORDINATION GROUPA={g_a}"
+            if g_a != g_b:  # Omit GROUPB for self-coordination
+                cmd += f" GROUPB={g_b}"
+
+            # Add parameters
+            cmd += f" R_0={self.r_0} NN={self.nn} D_0={self.d_0}"
+            if self.mm != 0:
+                cmd += f" MM={self.mm}"
+
+            commands.append(cmd)
+            cv_labels.append(label)
+
+        return cv_labels, commands
 
 
 @dataclass
@@ -727,7 +907,7 @@ class TorsionCV(_BasePlumedCV):
         multi_group: Strategy for handling multiple groups from the selector.
 
     Resources:
-        - https://www.plumed.org/doc-master/user-doc/html/TORSION.html
+        - https://www.plumed.org/doc-master/user-doc/html/TORSION
     """
 
     atoms: AtomSelector
