@@ -2,6 +2,7 @@ from hillclimber.actions import PrintAction
 from hillclimber.biases import RestraintBias, UpperWallBias, LowerWallBias
 from hillclimber.cvs import DistanceCV, AngleCV, CoordinationNumberCV, TorsionCV, RadiusOfGyrationCV
 from hillclimber.metadynamics import MetadBias, MetaDynamicsConfig, MetaDynamicsModel
+from hillclimber.opes import OPESBias, OPESConfig, OPESModel
 from hillclimber.selectors import IndexSelector, SMARTSSelector, SMILESSelector
 from hillclimber.virtual_atoms import VirtualAtom
 
@@ -19,6 +20,9 @@ __all__ = [
     "MetaDynamicsModel",
     "MetadBias",
     "MetaDynamicsConfig",
+    "OPESModel",
+    "OPESBias",
+    "OPESConfig",
     "RestraintBias",
     "UpperWallBias",
     "LowerWallBias",
