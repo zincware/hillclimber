@@ -21,7 +21,6 @@ from hillclimber.virtual_atoms import VirtualAtom
 GroupReductionStrategyType = Literal[
     "com", "cog", "first", "all", "com_per_group", "cog_per_group"
 ]
-MultiGroupStrategyType = Literal["first", "all_pairs", "corresponding", "first_to_all"]
 SiteIdentifier = Union[str, List[int]]
 ColorTuple = Tuple[float, float, float]
 AtomHighlightMap = Dict[int, ColorTuple]
@@ -131,22 +130,6 @@ class _BasePlumedCV(CollectiveVariable):
             for cmd in commands
             if cv_keyword in cmd and cmd.strip().startswith((prefix, f"{prefix}_"))
         ]
-
-    @staticmethod
-    def _get_index_pairs(
-        len1: int, len2: int, strategy: MultiGroupStrategyType
-    ) -> List[Tuple[int, int]]:
-        """Determines pairs of group indices based on the multi-group strategy."""
-        if strategy == "first":
-            return [(0, 0)] if len1 > 0 and len2 > 0 else []
-        if strategy == "all_pairs":
-            return [(i, j) for i in range(len1) for j in range(len2)]
-        if strategy == "corresponding":
-            n = min(len1, len2)
-            return [(i, i) for i in range(n)]
-        if strategy == "first_to_all":
-            return [(0, j) for j in range(len2)] if len1 > 0 else []
-        raise ValueError(f"Unknown multi-group strategy: {strategy}")
 
     @staticmethod
     def _create_virtual_site_command(
@@ -901,18 +884,25 @@ class TorsionCV(_BasePlumedCV):
     Calculates the torsional (dihedral) angle defined by four atoms. Each group
     provided by the selector must contain exactly four atoms.
 
-    Attributes:
-        atoms: Selector for one or more groups of 4 atoms.
-        prefix: Label prefix for the generated PLUMED commands.
-        multi_group: Strategy for handling multiple groups from the selector.
+    Parameters
+    ----------
+    atoms : AtomSelector
+        Selector for one or more groups of 4 atoms. Each group must contain exactly 4 atoms.
+    prefix : str
+        Label prefix for the generated PLUMED commands.
+    strategy : {"first", "all"}, default="first"
+        Strategy for handling multiple groups from the selector:
+        - "first": Process only the first group (creates 1 CV)
+        - "all": Process all groups independently (creates N CVs)
 
-    Resources:
-        - https://www.plumed.org/doc-master/user-doc/html/TORSION
+    Resources
+    ---------
+    - https://www.plumed.org/doc-master/user-doc/html/TORSION
     """
 
     atoms: AtomSelector
     prefix: str
-    multi_group: MultiGroupStrategyType = "first"
+    strategy: Literal["first", "all"] = "first"
 
     def _get_atom_highlights(
         self, atoms: Atoms, **kwargs
@@ -955,10 +945,10 @@ class TorsionCV(_BasePlumedCV):
 
     def _generate_commands(self, groups: List[List[int]]) -> List[str]:
         """Generates all necessary PLUMED commands."""
-        # For torsions, 'multi_group' determines how many groups to process.
-        if self.multi_group in ["first", "first_to_all"] and groups:
+        # Determine which groups to process based on strategy
+        if self.strategy == "first" and groups:
             indices_to_process = [0]
-        else:  # "all_pairs" and "corresponding" imply processing all independent groups.
+        else:  # "all" - process all groups independently
             indices_to_process = list(range(len(groups)))
 
         commands = []
@@ -978,19 +968,33 @@ class RadiusOfGyrationCV(_BasePlumedCV):
     Calculates the radius of gyration of a group of atoms. The radius of gyration
     is a measure of the size of a molecular system.
 
-    Attributes:
-        atoms: Selector for the atoms to include in the gyration calculation.
-        prefix: Label prefix for the generated PLUMED commands.
-        multi_group: Strategy for handling multiple groups from the selector.
-        type: The type of gyration tensor to use ("RADIUS" for scalar Rg, "GTPC_1", etc.)
+    Parameters
+    ----------
+    atoms : AtomSelector
+        Selector for the atoms to include in the gyration calculation.
+    prefix : str
+        Label prefix for the generated PLUMED commands.
+    flatten : bool, default=False
+        How to handle multiple groups from the selector:
+        - True: Combine all groups into one and calculate single Rg (creates 1 CV)
+        - False: Keep groups separate, use strategy to determine which to process
+    strategy : {"first", "all"}, default="first"
+        Strategy for handling multiple groups when flatten=False:
+        - "first": Process only the first group (creates 1 CV)
+        - "all": Process all groups independently (creates N CVs)
+    type : str, default="RADIUS"
+        The type of gyration tensor to use.
+        Options: "RADIUS", "GTPC_1", "GTPC_2", "GTPC_3", "ASPHERICITY", "ACYLINDRICITY", "KAPPA2", etc.
 
-    Resources:
-        - https://www.plumed.org/doc-master/user-doc/html/GYRATION/
+    Resources
+    ---------
+    - https://www.plumed.org/doc-master/user-doc/html/GYRATION/
     """
 
     atoms: AtomSelector
     prefix: str
-    multi_group: MultiGroupStrategyType = "first"
+    flatten: bool = False
+    strategy: Literal["first", "all"] = "first"
     type: str = "RADIUS"  # Options: RADIUS, GTPC_1, GTPC_2, GTPC_3, ASPHERICITY, ACYLINDRICITY, KAPPA2, etc.
 
     def _get_atom_highlights(
@@ -1021,18 +1025,29 @@ class RadiusOfGyrationCV(_BasePlumedCV):
 
     def _generate_commands(self, groups: List[List[int]]) -> List[str]:
         """Generates all necessary PLUMED commands."""
-        # For gyration, 'multi_group' determines how many groups to process.
-        if self.multi_group in ["first", "first_to_all"] and groups:
-            indices_to_process = [0]
-        else:  # "all_pairs" and "corresponding" imply processing all independent groups.
-            indices_to_process = list(range(len(groups)))
-
         commands = []
-        for i in indices_to_process:
-            label = self.prefix if len(indices_to_process) == 1 else f"{self.prefix}_{i}"
-            atom_list = ",".join(str(idx + 1) for idx in groups[i])
-            command = f"{label}: GYRATION ATOMS={atom_list}"
+
+        if self.flatten:
+            # Combine all groups into single atom list
+            flat_atoms = [idx for group in groups for idx in group]
+            atom_list = ",".join(str(idx + 1) for idx in flat_atoms)
+            command = f"{self.prefix}: GYRATION ATOMS={atom_list}"
             if self.type != "RADIUS":
                 command += f" TYPE={self.type}"
             commands.append(command)
+        else:
+            # Keep groups separate and use strategy to determine which to process
+            if self.strategy == "first" and groups:
+                indices_to_process = [0]
+            else:  # "all" - process all groups independently
+                indices_to_process = list(range(len(groups)))
+
+            for i in indices_to_process:
+                label = self.prefix if len(indices_to_process) == 1 else f"{self.prefix}_{i}"
+                atom_list = ",".join(str(idx + 1) for idx in groups[i])
+                command = f"{label}: GYRATION ATOMS={atom_list}"
+                if self.type != "RADIUS":
+                    command += f" TYPE={self.type}"
+                commands.append(command)
+
         return commands

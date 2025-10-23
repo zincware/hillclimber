@@ -28,21 +28,65 @@ def test_gyration_cv_basic(small_ethnol_water):
 def test_gyration_cv_with_type(small_ethnol_water):
     """Test RadiusOfGyrationCV with specific TYPE parameter."""
     ethanol_selector = pn.SMILESSelector(smiles="CCO")
-    
+
     gyration_cv = pn.RadiusOfGyrationCV(
         atoms=ethanol_selector,
         prefix="rg_asp",
         type="ASPHERICITY"
     )
-    
+
     labels, plumed_str = gyration_cv.to_plumed(small_ethnol_water)
-    
+
     expected = [
         "rg_asp: GYRATION ATOMS=1,2,3,4,5,6,7,8,9 TYPE=ASPHERICITY"
     ]
-    
+
     assert plumed_str == expected
     assert labels == ["rg_asp"]
+
+
+def test_gyration_cv_flatten_true(small_ethnol_water):
+    """Test RadiusOfGyrationCV with flatten=True (combine all groups)."""
+    ethanol_selector = pn.SMILESSelector(smiles="CCO")
+
+    gyration_cv = pn.RadiusOfGyrationCV(
+        atoms=ethanol_selector,
+        prefix="rg_all",
+        flatten=True
+    )
+
+    labels, plumed_str = gyration_cv.to_plumed(small_ethnol_water)
+
+    # Should combine both ethanol molecules (atoms 1-18)
+    expected = [
+        "rg_all: GYRATION ATOMS=1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18"
+    ]
+
+    assert plumed_str == expected
+    assert labels == ["rg_all"]
+
+
+def test_gyration_cv_strategy_all(small_ethnol_water):
+    """Test RadiusOfGyrationCV with strategy='all' (process all groups separately)."""
+    ethanol_selector = pn.SMILESSelector(smiles="CCO")
+
+    gyration_cv = pn.RadiusOfGyrationCV(
+        atoms=ethanol_selector,
+        prefix="rg",
+        flatten=False,
+        strategy="all"
+    )
+
+    labels, plumed_str = gyration_cv.to_plumed(small_ethnol_water)
+
+    # Should create two separate gyration CVs, one for each ethanol molecule
+    expected = [
+        "rg_0: GYRATION ATOMS=1,2,3,4,5,6,7,8,9",
+        "rg_1: GYRATION ATOMS=10,11,12,13,14,15,16,17,18"
+    ]
+
+    assert plumed_str == expected
+    assert labels == ["rg_0", "rg_1"]
 
 
 # def test_gyration_cv_all_groups(small_ethnol_water):
