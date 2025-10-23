@@ -22,11 +22,14 @@ class MetadBias:
     cv : CollectiveVariable
         The collective variable to bias.
     sigma : float, optional
-        The width of the Gaussian potential, by default None.
+        The width of the Gaussian potential in the same units as the CV
+        (e.g., Å for distances, radians for angles), by default None.
     grid_min : float | str, optional
-        The minimum value of the grid, by default None.
+        The minimum value of the grid in CV units (or PLUMED expression like "-pi"),
+        by default None.
     grid_max : float | str, optional
-        The maximum value of the grid, by default None.
+        The maximum value of the grid in CV units (or PLUMED expression like "pi"),
+        by default None.
     grid_bin : int, optional
         The number of bins in the grid, by default None.
 
@@ -48,12 +51,21 @@ class MetaDynamicsConfig:
 
     This contains only the global parameters that apply to all CVs.
 
+    Units
+    -----
+    hillclimber uses ASE units throughout. The UNITS line in the PLUMED input tells
+    PLUMED to interpret all values in ASE units:
+    - Distances: Ångström (Å)
+    - Energies: electronvolt (eV) - including HEIGHT, SIGMA for energy-based CVs, etc.
+    - Time: femtoseconds (fs)
+    - Temperature: Kelvin (K)
+
     Parameters
     ----------
     height : float, optional
-        The height of the Gaussian potential in kJ/mol, by default 1.0.
+        The height of the Gaussian potential in eV, by default 1.0.
     pace : int, optional
-        The frequency of Gaussian deposition, by default 500.
+        The frequency of Gaussian deposition in MD steps, by default 500.
     biasfactor : float, optional
         The bias factor for well-tempered metadynamics, by default None.
     temp : float, optional
@@ -64,7 +76,7 @@ class MetaDynamicsConfig:
         The adaptive scheme to use, by default None.
         If None, no ADAPTIVE parameter is written to PLUMED.
     flush : int | None
-        The frequency of flushing the output files. 
+        The frequency of flushing the output files in MD steps.
         If None, uses the plumed default.
 
     Resources
@@ -189,8 +201,13 @@ class MetaDynamicsModel(zntrack.Node, NodeWithCalculator):
 
         sigmas, grid_mins, grid_maxs, grid_bins = [], [], [], []
 
+        # PLUMED UNITS line specifies conversion factors from ASE units to PLUMED's native units:
+        # - LENGTH=A: ASE uses Ångström (A), PLUMED native is nm → A is a valid PLUMED unit
+        # - TIME: ASE uses fs, PLUMED native is ps → 1 fs = 0.001 ps
+        # - ENERGY: ASE uses eV, PLUMED native is kJ/mol → 1 eV = 96.485 kJ/mol
+        # See: https://www.plumed.org/doc-master/user-doc/html/ (MD engine integration docs)
         plumed_lines.append(
-            f"UNITS LENGTH=A TIME={1 / (1000 * ase.units.fs)} ENERGY={ase.units.mol / ase.units.kJ}"
+            f"UNITS LENGTH=A TIME={1/1000} ENERGY={ase.units.mol / ase.units.kJ}"
         )
 
         for bias_cv in self.bias_cvs:

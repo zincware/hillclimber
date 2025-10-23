@@ -31,7 +31,7 @@ def test_opes_metad_basic_adaptive_sigma(small_ethnol_water):
     )
 
     expected = [
-        "UNITS LENGTH=A TIME=0.010180505671156723 ENERGY=96.48533288249877",
+        "UNITS LENGTH=A TIME=0.001 ENERGY=96.48533288249877",
         "d12_x1: COM ATOMS=1,2,3,4,5,6,7,8,9",
         "d12_x2: COM ATOMS=19,20,21",
         "d12: DISTANCE ATOMS=d12_x1,d12_x2",
@@ -69,7 +69,7 @@ def test_opes_metad_fixed_sigma(small_ethnol_water):
     )
 
     expected = [
-        "UNITS LENGTH=A TIME=0.010180505671156723 ENERGY=96.48533288249877",
+        "UNITS LENGTH=A TIME=0.001 ENERGY=96.48533288249877",
         "d12_x1: COM ATOMS=1,2,3,4,5,6,7,8,9",
         "d12_x2: COM ATOMS=19,20,21",
         "d12: DISTANCE ATOMS=d12_x1,d12_x2",
@@ -108,7 +108,7 @@ def test_opes_metad_explore_mode(small_ethnol_water):
     )
 
     expected = [
-        "UNITS LENGTH=A TIME=0.010180505671156723 ENERGY=96.48533288249877",
+        "UNITS LENGTH=A TIME=0.001 ENERGY=96.48533288249877",
         "d12_x1: COM ATOMS=1,2,3,4,5,6,7,8,9",
         "d12_x2: COM ATOMS=19,20,21",
         "d12: DISTANCE ATOMS=d12_x1,d12_x2",
@@ -152,7 +152,7 @@ def test_opes_metad_two_cvs_same_sigma(small_ethnol_water):
     )
 
     expected = [
-        "UNITS LENGTH=A TIME=0.010180505671156723 ENERGY=96.48533288249877",
+        "UNITS LENGTH=A TIME=0.001 ENERGY=96.48533288249877",
         "d12_x1: COM ATOMS=1,2,3,4,5,6,7,8,9",
         "d12_x2: COM ATOMS=19,20,21",
         "d12: DISTANCE ATOMS=d12_x1,d12_x2",
@@ -197,7 +197,7 @@ def test_opes_metad_two_cvs_different_sigma(small_ethnol_water):
     )
 
     expected = [
-        "UNITS LENGTH=A TIME=0.010180505671156723 ENERGY=96.48533288249877",
+        "UNITS LENGTH=A TIME=0.001 ENERGY=96.48533288249877",
         "d12_x1: COM ATOMS=1,2,3,4,5,6,7,8,9",
         "d12_x2: COM ATOMS=19,20,21",
         "d12: DISTANCE ATOMS=d12_x1,d12_x2",
@@ -242,7 +242,7 @@ def test_opes_metad_with_optional_parameters(small_ethnol_water):
     )
 
     expected = [
-        "UNITS LENGTH=A TIME=0.010180505671156723 ENERGY=96.48533288249877",
+        "UNITS LENGTH=A TIME=0.001 ENERGY=96.48533288249877",
         "d12_x1: COM ATOMS=1,2,3,4,5,6,7,8,9",
         "d12_x2: COM ATOMS=19,20,21",
         "d12: DISTANCE ATOMS=d12_x1,d12_x2",
@@ -281,7 +281,7 @@ def test_opes_metad_with_walkers_mpi(small_ethnol_water):
     )
 
     expected = [
-        "UNITS LENGTH=A TIME=0.010180505671156723 ENERGY=96.48533288249877",
+        "UNITS LENGTH=A TIME=0.001 ENERGY=96.48533288249877",
         "d12_x1: COM ATOMS=1,2,3,4,5,6,7,8,9",
         "d12_x2: COM ATOMS=19,20,21",
         "d12: DISTANCE ATOMS=d12_x1,d12_x2",
@@ -322,7 +322,7 @@ def test_opes_metad_with_state_files(small_ethnol_water):
     )
 
     expected = [
-        "UNITS LENGTH=A TIME=0.010180505671156723 ENERGY=96.48533288249877",
+        "UNITS LENGTH=A TIME=0.001 ENERGY=96.48533288249877",
         "d12_x1: COM ATOMS=1,2,3,4,5,6,7,8,9",
         "d12_x2: COM ATOMS=19,20,21",
         "d12: DISTANCE ATOMS=d12_x1,d12_x2",
@@ -364,7 +364,7 @@ def test_opes_metad_with_actions(small_ethnol_water):
     )
 
     expected = [
-        "UNITS LENGTH=A TIME=0.010180505671156723 ENERGY=96.48533288249877",
+        "UNITS LENGTH=A TIME=0.001 ENERGY=96.48533288249877",
         "d12_x1: COM ATOMS=1,2,3,4,5,6,7,8,9",
         "d12_x2: COM ATOMS=19,20,21",
         "d12: DISTANCE ATOMS=d12_x1,d12_x2",
@@ -411,7 +411,7 @@ def test_opes_metad_with_flush(small_ethnol_water):
     )
 
     expected = [
-        "UNITS LENGTH=A TIME=0.010180505671156723 ENERGY=96.48533288249877",
+        "UNITS LENGTH=A TIME=0.001 ENERGY=96.48533288249877",
         "d12_x1: COM ATOMS=1,2,3,4,5,6,7,8,9",
         "d12_x2: COM ATOMS=19,20,21",
         "d12: DISTANCE ATOMS=d12_x1,d12_x2",
@@ -482,7 +482,7 @@ def test_opes_metad_diagonal_strategy(small_ethnol_water):
     )
 
     expected = [
-        "UNITS LENGTH=A TIME=0.010180505671156723 ENERGY=96.48533288249877",
+        "UNITS LENGTH=A TIME=0.001 ENERGY=96.48533288249877",
         "d12_x1_0: COM ATOMS=1,2,3,4,5,6,7,8,9",
         "d12_x1_1: COM ATOMS=10,11,12,13,14,15,16,17,18",
         "d12_x2_0: COM ATOMS=19,20,21",

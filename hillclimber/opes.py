@@ -27,8 +27,9 @@ class OPESBias:
     cv : CollectiveVariable
         The collective variable to bias.
     sigma : float | str, optional
-        Initial kernel width. Use "ADAPTIVE" for automatic adaptation
-        (recommended). If numeric, specifies the initial width.
+        Initial kernel width in CV units (e.g., Å for distances, radians for angles).
+        Use "ADAPTIVE" for automatic adaptation (recommended).
+        If numeric, specifies the initial width.
         Default: "ADAPTIVE".
 
     Resources
@@ -53,10 +54,19 @@ class OPESConfig:
     OPES (On-the-fly Probability Enhanced Sampling) is a modern enhanced
     sampling method that samples well-tempered target distributions.
 
+    Units
+    -----
+    hillclimber uses ASE units throughout. The UNITS line in the PLUMED input tells
+    PLUMED to interpret all values in ASE units:
+    - Distances: Ångström (Å)
+    - Energies: electronvolt (eV) - including BARRIER, SIGMA_MIN, etc.
+    - Time: femtoseconds (fs)
+    - Temperature: Kelvin (K)
+
     Parameters
     ----------
     barrier : float
-        Highest free energy barrier to overcome (kJ/mol). This is the key
+        Highest free energy barrier to overcome (eV). This is the key
         parameter that determines sampling efficiency.
     pace : int, optional
         Frequency of kernel deposition in MD steps (default: 500).
@@ -75,9 +85,9 @@ class OPESConfig:
     file : str, optional
         File to store deposited kernels (default: "KERNELS").
     adaptive_sigma_stride : int, optional
-        Steps between adaptive sigma measurements. If not set, uses 10×PACE.
+        MD steps between adaptive sigma measurements. If not set, uses 10×PACE.
     sigma_min : float, optional
-        Minimum allowable sigma value for adaptive sigma.
+        Minimum allowable sigma value for adaptive sigma in CV units.
     state_wfile : str, optional
         State file for writing exact restart information.
     state_rfile : str, optional
@@ -89,7 +99,7 @@ class OPESConfig:
     calc_work : bool, optional
         Calculate and output accumulated work (default: False).
     flush : int, optional
-        Frequency of flushing output files.
+        Frequency of flushing output files in MD steps.
 
     Resources
     ---------
@@ -272,8 +282,13 @@ class OPESModel(zntrack.Node, NodeWithCalculator):
 
         sigmas = []
 
+        # PLUMED UNITS line specifies conversion factors from ASE units to PLUMED's native units:
+        # - LENGTH=A: ASE uses Ångström (A), PLUMED native is nm → A is a valid PLUMED unit
+        # - TIME: ASE uses fs, PLUMED native is ps → 1 fs = 0.001 ps
+        # - ENERGY: ASE uses eV, PLUMED native is kJ/mol → 1 eV = 96.485 kJ/mol
+        # See: https://www.plumed.org/doc-master/user-doc/html/ (MD engine integration docs)
         plumed_lines.append(
-            f"UNITS LENGTH=A TIME={1 / (1000 * ase.units.fs)} ENERGY={ase.units.mol / ase.units.kJ}"
+            f"UNITS LENGTH=A TIME={1/1000} ENERGY={ase.units.mol / ase.units.kJ}"
         )
 
         for bias_cv in self.bias_cvs:

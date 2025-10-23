@@ -29,17 +29,17 @@ class RestraintBias(BiasProtocol):
     cv : CollectiveVariable
         The collective variable to restrain.
     kappa : float
-        The force constant of the restraint in kJ/(mol·unit^2), where unit
-        depends on the CV (e.g., Å for distances, radians for angles).
+        The force constant of the restraint in eV/unit^2, where unit
+        depends on the CV (e.g., eV/Å² for distances, eV/rad² for angles).
     at : float
-        The center/target value of the restraint.
+        The center/target value of the restraint in CV units (e.g., Å for distances).
     label : str, optional
         A custom label for this restraint. If not provided, uses cv.prefix + "_restraint".
 
     Examples
     --------
     >>> import hillclimber as hc
-    >>> # Restrain a distance around 2.5 Å
+    >>> # Restrain a distance around 2.5 Å with force constant 200 eV/Å²
     >>> distance_cv = hc.DistanceCV(...)
     >>> restraint = hc.RestraintBias(cv=distance_cv, kappa=200.0, at=2.5)
 
@@ -49,10 +49,10 @@ class RestraintBias(BiasProtocol):
 
     Notes
     -----
-    The force constant kappa is in kJ/(mol·unit^2). For typical CV units:
-    - Distances (Å): kappa in kJ/(mol·Å^2)
-    - Angles (radians): kappa in kJ/(mol·rad^2)
-    - Dimensionless CVs: kappa in kJ/mol
+    Due to the UNITS line, kappa is in eV/unit^2 (ASE energy units). For typical CVs:
+    - Distances (Å): kappa in eV/Å²
+    - Angles (radians): kappa in eV/rad²
+    - Dimensionless CVs: kappa in eV
 
     The restraint creates a bias force: F = -kappa * (s - at)
     """
@@ -109,9 +109,9 @@ class UpperWallBias(BiasProtocol):
     cv : CollectiveVariable
         The collective variable to apply the wall to.
     at : float
-        The position of the wall (threshold value).
+        The position of the wall (threshold value) in CV units.
     kappa : float
-        The force constant of the wall in kJ/mol.
+        The force constant of the wall in eV.
     exp : int, optional
         The exponent of the wall potential. Default is 2 (harmonic).
         Higher values create steeper walls.
@@ -125,7 +125,7 @@ class UpperWallBias(BiasProtocol):
     Examples
     --------
     >>> import hillclimber as hc
-    >>> # Prevent distance from exceeding 3.0 Å
+    >>> # Prevent distance from exceeding 3.0 Å with force constant 100 eV
     >>> distance_cv = hc.DistanceCV(...)
     >>> upper_wall = hc.UpperWallBias(cv=distance_cv, at=3.0, kappa=100.0, exp=2)
 
@@ -209,9 +209,9 @@ class LowerWallBias(BiasProtocol):
     cv : CollectiveVariable
         The collective variable to apply the wall to.
     at : float
-        The position of the wall (threshold value).
+        The position of the wall (threshold value) in CV units.
     kappa : float
-        The force constant of the wall in kJ/mol.
+        The force constant of the wall in eV.
     exp : int, optional
         The exponent of the wall potential. Default is 2 (harmonic).
         Higher values create steeper walls.
@@ -225,7 +225,7 @@ class LowerWallBias(BiasProtocol):
     Examples
     --------
     >>> import hillclimber as hc
-    >>> # Prevent distance from going below 1.0 Å
+    >>> # Prevent distance from going below 1.0 Å with force constant 100 eV
     >>> distance_cv = hc.DistanceCV(...)
     >>> lower_wall = hc.LowerWallBias(cv=distance_cv, at=1.0, kappa=100.0, exp=2)
 

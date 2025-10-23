@@ -39,7 +39,7 @@ def test_distance_cv_corresponding_strategy(small_ethnol_water):
     )
 
     assert meta_d_model.to_plumed(small_ethnol_water) == [
-        "UNITS LENGTH=A TIME=0.010180505671156723 ENERGY=96.48533288249877",
+        "UNITS LENGTH=A TIME=0.001 ENERGY=96.48533288249877",
         "d12_x1_0: COM ATOMS=1,2,3,4,5,6,7,8,9",
         "d12_x1_1: COM ATOMS=10,11,12,13,14,15,16,17,18",
         "d12_x2_0: COM ATOMS=19,20,21",
@@ -88,7 +88,7 @@ def test_distance_cv_first_strategy(small_ethnol_water):
     )
 
     assert meta_d_model.to_plumed(small_ethnol_water) == [
-        "UNITS LENGTH=A TIME=0.010180505671156723 ENERGY=96.48533288249877",
+        "UNITS LENGTH=A TIME=0.001 ENERGY=96.48533288249877",
         "d12_x1: COM ATOMS=1,2,3,4,5,6,7,8,9",
         "d12_x2: COM ATOMS=19,20,21",
         "d12: DISTANCE ATOMS=d12_x1,d12_x2",
@@ -189,7 +189,7 @@ def test_cv_used_in_bias_and_wall(small_ethnol_water):
 
     # Expected structure
     expected = [
-        "UNITS LENGTH=A TIME=0.010180505671156723 ENERGY=96.48533288249877",
+        "UNITS LENGTH=A TIME=0.001 ENERGY=96.48533288249877",
         "d_x1: COM ATOMS=1,2,3,4,5,6,7,8,9",
         "d_x2: COM ATOMS=19,20,21",
         "d: DISTANCE ATOMS=d_x1,d_x2",
@@ -290,7 +290,7 @@ def test_adaptive_geom(small_ethnol_water):
     result = meta_d_model.to_plumed(small_ethnol_water)
 
     expected = [
-        "UNITS LENGTH=A TIME=0.010180505671156723 ENERGY=96.48533288249877",
+        "UNITS LENGTH=A TIME=0.001 ENERGY=96.48533288249877",
         "d_x1: COM ATOMS=1,2,3,4,5,6,7,8,9",
         "d_x2: COM ATOMS=19,20,21",
         "d: DISTANCE ATOMS=d_x1,d_x2",
@@ -337,7 +337,7 @@ def test_adaptive_diff(small_ethnol_water):
     result = meta_d_model.to_plumed(small_ethnol_water)
 
     expected = [
-        "UNITS LENGTH=A TIME=0.010180505671156723 ENERGY=96.48533288249877",
+        "UNITS LENGTH=A TIME=0.001 ENERGY=96.48533288249877",
         "d_x1: COM ATOMS=1,2,3,4,5,6,7,8,9",
         "d_x2: COM ATOMS=19,20,21",
         "d: DISTANCE ATOMS=d_x1,d_x2",
@@ -398,7 +398,7 @@ def test_adaptive_multiple_cvs_same_sigma(small_ethnol_water):
     result = meta_d_model.to_plumed(small_ethnol_water)
 
     expected = [
-        "UNITS LENGTH=A TIME=0.010180505671156723 ENERGY=96.48533288249877",
+        "UNITS LENGTH=A TIME=0.001 ENERGY=96.48533288249877",
         "d_x1: COM ATOMS=1,2,3,4,5,6,7,8,9",
         "d_x2: COM ATOMS=19,20,21",
         "d: DISTANCE ATOMS=d_x1,d_x2",

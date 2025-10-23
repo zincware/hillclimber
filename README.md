@@ -112,6 +112,64 @@ with project:
 project.build()
 ```
 
+## Units
+
+hillclimber uses **ASE units** throughout the package:
+
+- **Distances**: Ångström (Å)
+- **Energies**: electronvolt (eV)
+- **Time**: femtoseconds (fs)
+- **Temperature**: Kelvin (K)
+- **Mass**: atomic mass units (amu)
+
+### Unit Conversion with PLUMED
+
+PLUMED internally uses different units (nm, kJ/mol, ps). hillclimber automatically handles the conversion by adding a `UNITS` line to the PLUMED input:
+
+```
+UNITS LENGTH=A TIME=0.001 ENERGY=96.48533288249877
+```
+
+This tells PLUMED to interpret all input parameters in ASE units:
+- `LENGTH=A`: Distances are in Ångström
+- `TIME=0.001`: Time values are in fs (1 fs = 0.001 ps)
+- `ENERGY=96.485`: Energies are in eV (1 eV = 96.485 kJ/mol)
+
+**All PLUMED parameters (HEIGHT, BARRIER, KAPPA, SIGMA, etc.) should be specified in ASE units (eV, Å, fs).** The UNITS line ensures PLUMED interprets them correctly.
+
+### Example with Units
+
+```python
+config = hc.MetaDynamicsConfig(
+    height=0.5,        # eV - Gaussian hill height
+    pace=150,          # MD steps - deposition frequency
+    biasfactor=10.0,   # Dimensionless - well-tempered factor
+    temp=300.0         # Kelvin - system temperature
+)
+
+bias = hc.MetadBias(
+    cv=distance_cv,
+    sigma=0.1,         # Å - Gaussian width for distance CV
+    grid_min=0.0,      # Å - minimum grid value
+    grid_max=5.0,      # Å - maximum grid value
+    grid_bin=100       # Number of bins
+)
+
+# Restraint example
+restraint = hc.RestraintBias(
+    cv=distance_cv,
+    kappa=200.0,       # eV/Å² - force constant
+    at=2.5             # Å - restraint center
+)
+
+metad_model = hc.MetaDynamicsModel(
+    config=config,
+    bias_cvs=[bias],
+    actions=[restraint],
+    timestep=0.5       # fs - MD timestep
+)
+```
+
 ## Collective Variables
 
 hillclimber supports multiple types of collective variables:
