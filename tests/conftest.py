@@ -8,7 +8,7 @@ def ethanol_water():
     ethanol = rdkit2ase.smiles2conformers("CCO", numConfs=100)
     water = rdkit2ase.smiles2conformers("O", numConfs=100)
     box = rdkit2ase.pack(
-        [ethanol, water], counts=[16, 16], density=700, packmol="packmol.jl"
+        [ethanol, water], counts=[16, 16], density=700, packmol="packmol"
     )
     return box.copy()
 
@@ -18,7 +18,7 @@ def small_ethnol_water():
     ethanol = rdkit2ase.smiles2conformers("CCO", numConfs=1)
     water = rdkit2ase.smiles2conformers("O", numConfs=1)
     box = rdkit2ase.pack(
-        [ethanol, water], counts=[2, 2], density=700, packmol="packmol.jl"
+        [ethanol, water], counts=[2, 2], density=700, packmol="packmol"
     )
     return box.copy()
 
@@ -33,7 +33,7 @@ def na_cl_water():
         [na_plus, cl_minus, water],
         counts=[1, 1, 10],
         density=1000,  # More realistic for water
-        packmol="packmol.jl",
+        packmol="packmol",
     )
     return box.copy()
 

@@ -196,17 +196,20 @@ class MetaDynamicsModel(zntrack.Node, NodeWithCalculator):
             plumed_lines.extend(cv_str)
             all_labels.extend(labels)
 
-            # Collect per-CV parameters for later
-            sigmas.append(str(bias_cv.sigma) if bias_cv.sigma is not None else None)
-            grid_mins.append(
-                str(bias_cv.grid_min) if bias_cv.grid_min is not None else None
-            )
-            grid_maxs.append(
-                str(bias_cv.grid_max) if bias_cv.grid_max is not None else None
-            )
-            grid_bins.append(
-                str(bias_cv.grid_bin) if bias_cv.grid_bin is not None else None
-            )
+            # Collect per-CV parameters for later - repeat for each label
+            # PLUMED requires one parameter value per ARG, so if a CV generates
+            # multiple labels, we need to repeat the parameter values
+            for _ in labels:
+                sigmas.append(str(bias_cv.sigma) if bias_cv.sigma is not None else None)
+                grid_mins.append(
+                    str(bias_cv.grid_min) if bias_cv.grid_min is not None else None
+                )
+                grid_maxs.append(
+                    str(bias_cv.grid_max) if bias_cv.grid_max is not None else None
+                )
+                grid_bins.append(
+                    str(bias_cv.grid_bin) if bias_cv.grid_bin is not None else None
+                )
 
         metad_parts = [
             "METAD",
