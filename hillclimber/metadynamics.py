@@ -243,10 +243,47 @@ class MetaDynamicsModel(zntrack.Node, NodeWithCalculator):
 
         plumed_lines.append(f"metad: {' '.join(metad_parts)}")
 
+        # Track defined commands to detect duplicates and conflicts
+        # Map label -> full command for labeled commands (e.g., "d: DISTANCE ...")
+        defined_commands = {}
+        for line in plumed_lines:
+            # Check if this is a labeled command (format: "label: ACTION ...")
+            if ": " in line:
+                label = line.split(": ", 1)[0]
+                defined_commands[label] = line
+
         # Add any additional actions (restraints, walls, print actions, etc.)
         for action in self.actions:
             action_lines = action.to_plumed(atoms)
-            plumed_lines.extend(action_lines)
+
+            # Filter out duplicate CV definitions, but detect conflicts
+            filtered_lines = []
+            for line in action_lines:
+                # Check if this is a labeled command
+                if ": " in line:
+                    label = line.split(": ", 1)[0]
+
+                    # Check if this label was already defined
+                    if label in defined_commands:
+                        # If the command is identical, skip (deduplication)
+                        if defined_commands[label] == line:
+                            continue
+                        # If the command is different, raise error (conflict)
+                        else:
+                            raise ValueError(
+                                f"Conflicting definitions for label '{label}':\n"
+                                f"  Already defined: {defined_commands[label]}\n"
+                                f"  New definition:  {line}"
+                            )
+                    else:
+                        # New labeled command, track it
+                        defined_commands[label] = line
+                        filtered_lines.append(line)
+                else:
+                    # Unlabeled command, always add
+                    filtered_lines.append(line)
+
+            plumed_lines.extend(filtered_lines)
 
         # Add FLUSH if configured
         if self.config.flush is not None:

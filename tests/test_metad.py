@@ -136,3 +136,121 @@ def test_duplicate_cv_prefix(small_ethnol_water):
 
     with pytest.raises(ValueError, match="Duplicate CV prefix found: d12"):
         meta_d_model.to_plumed(small_ethnol_water)
+
+
+def test_cv_used_in_bias_and_wall(small_ethnol_water):
+    """Test that a CV used in both bias_cvs and actions (wall) is not duplicated."""
+    x1_selector = pn.SMILESSelector(smiles="CCO")
+    x2_selector = pn.SMILESSelector(smiles="O")
+
+    # Create a distance CV
+    distance_cv = pn.DistanceCV(
+        x1=pn.VirtualAtom(x1_selector[0], "com"),
+        x2=pn.VirtualAtom(x2_selector[0], "com"),
+        prefix="d",
+    )
+
+    # Use the same CV in both bias_cvs and actions
+    biased_cv = pn.MetadBias(
+        cv=distance_cv,
+        sigma=0.2,
+        grid_min=0.0,
+        grid_max=5.0,
+        grid_bin=300,
+    )
+
+    upper_wall = pn.UpperWallBias(
+        cv=distance_cv,
+        at=4.5,
+        kappa=1000.0,
+    )
+
+    meta_d_config = pn.MetaDynamicsConfig(
+        height=1.2,
+        pace=500,
+        biasfactor=10.0,
+        temp=300.0,
+    )
+
+    meta_d_model = pn.MetaDynamicsModel(
+        config=meta_d_config,
+        data=small_ethnol_water,
+        bias_cvs=[biased_cv],
+        actions=[upper_wall],
+        model=None,  # type: ignore
+    )
+
+    result = meta_d_model.to_plumed(small_ethnol_water)
+
+    # Check that the CV is defined only once
+    cv_definitions = [line for line in result if line.startswith("d:")]
+    assert len(cv_definitions) == 1, f"Expected 1 CV definition, got {len(cv_definitions)}: {cv_definitions}"
+
+    # Check that both METAD and UPPER_WALLS are present
+    assert any("metad: METAD" in line for line in result)
+    assert any("UPPER_WALLS" in line for line in result)
+
+    # Expected structure
+    expected = [
+        "UNITS LENGTH=A TIME=0.010180505671156723 ENERGY=96.48533288249877",
+        "d_x1: COM ATOMS=1,2,3,4,5,6,7,8,9",
+        "d_x2: COM ATOMS=19,20,21",
+        "d: DISTANCE ATOMS=d_x1,d_x2",
+        "metad: METAD ARG=d HEIGHT=1.2 PACE=500 TEMP=300.0 FILE=HILLS ADAPTIVE=NONE BIASFACTOR=10.0 SIGMA=0.2 GRID_MIN=0.0 GRID_MAX=5.0 GRID_BIN=300",
+        "d_uwall: UPPER_WALLS ARG=d AT=4.5 KAPPA=1000.0 EXP=2",
+    ]
+
+    assert result == expected
+
+
+def test_cv_conflict_detection(small_ethnol_water):
+    """Test that using the same label with different CV definitions raises an error."""
+    x1_selector = pn.SMILESSelector(smiles="CCO")
+    x2_selector = pn.SMILESSelector(smiles="O")
+
+    # Create two different CVs with the same prefix
+    distance_cv1 = pn.DistanceCV(
+        x1=pn.VirtualAtom(x1_selector[0], "com"),
+        x2=pn.VirtualAtom(x2_selector[0], "com"),
+        prefix="d",
+    )
+
+    distance_cv2 = pn.DistanceCV(
+        x1=pn.VirtualAtom(x1_selector[1], "com"),  # Different group!
+        x2=pn.VirtualAtom(x2_selector[0], "com"),
+        prefix="d",  # Same prefix!
+    )
+
+    biased_cv = pn.MetadBias(
+        cv=distance_cv1,
+        sigma=0.2,
+        grid_min=0.0,
+        grid_max=5.0,
+        grid_bin=300,
+    )
+
+    # Using a different CV with the same prefix in actions should raise an error
+    upper_wall = pn.UpperWallBias(
+        cv=distance_cv2,
+        at=4.5,
+        kappa=1000.0,
+    )
+
+    meta_d_config = pn.MetaDynamicsConfig(
+        height=1.2,
+        pace=500,
+        biasfactor=10.0,
+        temp=300.0,
+    )
+
+    meta_d_model = pn.MetaDynamicsModel(
+        config=meta_d_config,
+        data=small_ethnol_water,
+        bias_cvs=[biased_cv],
+        actions=[upper_wall],
+        model=None,  # type: ignore
+    )
+
+    # This should raise an error because d_x1 has different definitions
+    with pytest.raises(ValueError, match="Conflicting definitions for label 'd_x1'"):
+        meta_d_model.to_plumed(small_ethnol_water)
