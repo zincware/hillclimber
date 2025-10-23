@@ -11,6 +11,60 @@ import typing as t
 from pathlib import Path
 
 
+def _validate_multi_cv_params(
+    min_bounds: float | list[float] | None = None,
+    max_bounds: float | list[float] | None = None,
+    bin: int | list[int] | None = None,
+    spacing: float | list[float] | None = None,
+    sigma: float | list[float] | None = None,
+    idw: str | list[str] | None = None,
+) -> None:
+    """Validate that multi-CV parameters have consistent dimensions.
+
+    Parameters
+    ----------
+    min_bounds, max_bounds, bin, spacing, sigma, idw
+        Parameters from sum_hills that can be lists for multi-CV cases.
+
+    Raises
+    ------
+    ValueError
+        If list parameters have inconsistent lengths.
+    """
+    # Collect all list parameters and their lengths
+    list_params: dict[str, int] = {}
+
+    params_to_check = {
+        "min_bounds": min_bounds,
+        "max_bounds": max_bounds,
+        "bin": bin,
+        "spacing": spacing,
+        "sigma": sigma,
+        "idw": idw,
+    }
+
+    for name, value in params_to_check.items():
+        if isinstance(value, (list, tuple)):
+            list_params[name] = len(value)
+
+    # If no list parameters, nothing to validate (single CV case)
+    if not list_params:
+        return
+
+    # Check that all list parameters have the same length
+    lengths = set(list_params.values())
+    if len(lengths) > 1:
+        # Build a detailed error message
+        param_details = ", ".join(
+            f"{name}={length}" for name, length in list_params.items()
+        )
+        raise ValueError(
+            f"Inconsistent number of CVs in parameters. "
+            f"All list parameters must have the same length. "
+            f"Got: {param_details}"
+        )
+
+
 def sum_hills(
     hills_file: str | Path,
     plumed_bin_path: str | Path | None = None,
@@ -66,15 +120,20 @@ def sum_hills(
     stride : int, optional
         Stride for integrating hills file. Default is 0 (never integrate).
     min_bounds : float or list[float], optional
-        Lower bounds for the grid. For multi-dimensional CVs, provide a list.
+        Lower bounds for the grid. For multi-dimensional CVs, provide a list with
+        one value per CV (e.g., ``[-3.14, -3.14]`` for two torsion angles).
     max_bounds : float or list[float], optional
-        Upper bounds for the grid. For multi-dimensional CVs, provide a list.
+        Upper bounds for the grid. For multi-dimensional CVs, provide a list with
+        one value per CV (e.g., ``[3.14, 3.14]`` for two torsion angles).
     bin : int or list[int], optional
-        Number of bins for the grid. For multi-dimensional CVs, provide a list.
+        Number of bins for the grid. For multi-dimensional CVs, provide a list with
+        one value per CV (e.g., ``[250, 250]`` for two CVs with 250 bins each).
     spacing : float or list[float], optional
-        Grid spacing, alternative to the number of bins.
+        Grid spacing, alternative to the number of bins. For multi-dimensional CVs,
+        provide a list with one value per CV.
     idw : str or list[str], optional
-        Variables to be used for the free-energy/histogram.
+        Variables to be used for the free-energy/histogram. For multi-dimensional CVs,
+        provide a list with one variable name per CV (e.g., ``['phi', 'psi']``).
     outfile : str or Path, optional
         Output file for sum_hills. Default is ``fes.dat``.
     outhisto : str or Path, optional
@@ -82,7 +141,8 @@ def sum_hills(
     kt : float, optional
         Temperature in energy units (kJ/mol) for integrating out variables.
     sigma : float or list[float], optional
-        Sigma for binning (only needed when doing histogram).
+        Sigma for binning (only needed when doing histogram). For multi-dimensional CVs,
+        provide a list with one value per CV.
     fmt : str, optional
         Output format specification.
     verbose : bool, default=True
@@ -100,6 +160,9 @@ def sum_hills(
     FileNotFoundError
         If the HILLS file, PLUMED executable, or PLUMED installation directory
         cannot be found.
+    ValueError
+        If list-based parameters (``bin``, ``min_bounds``, ``max_bounds``, etc.)
+        have inconsistent lengths when using multiple CVs.
     subprocess.CalledProcessError
         If the PLUMED command fails and ``check=True``.
 
@@ -128,6 +191,17 @@ def sum_hills(
     ...     outfile="fes_2d.dat"
     ... )
 
+    For protein backbone torsion angles (phi and psi):
+
+    >>> hc.sum_hills(
+    ...     "HILLS",
+    ...     bin=[250, 250],
+    ...     min_bounds=[-3.14, -3.14],
+    ...     max_bounds=[3.14, 3.14],
+    ...     idw=["phi", "psi"],
+    ...     outfile="ramachandran.dat"
+    ... )
+
     Resources
     ---------
     - https://www.plumed.org/doc-master/user-doc/html/sum_hills.html
@@ -140,6 +214,13 @@ def sum_hills(
 
     The free energy surface is reconstructed by summing all deposited hills:
     F(s) = -V(s) where V(s) is the bias potential.
+
+    **Multi-CV Consistency:**
+    When using multiple collective variables (CVs), all list-based parameters
+    must have the same length. For example, if analyzing two CVs (phi and psi),
+    then ``bin``, ``min_bounds``, ``max_bounds``, and ``idw`` (if provided as lists)
+    must all have exactly 2 elements. The function will raise a ``ValueError``
+    if inconsistent list lengths are detected.
     """
     # Convert to Path object
     hills_file = Path(hills_file)
@@ -183,6 +264,16 @@ def sum_hills(
             env["LD_LIBRARY_PATH"] = str(lib_path)
 
         plumed_exec = str(plumed_exec)
+
+    # Validate multi-CV parameter consistency
+    _validate_multi_cv_params(
+        min_bounds=min_bounds,
+        max_bounds=max_bounds,
+        bin=bin,
+        spacing=spacing,
+        sigma=sigma,
+        idw=idw,
+    )
 
     # Build command
     cmd_parts = [plumed_exec, "sum_hills"]

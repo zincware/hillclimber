@@ -65,3 +65,57 @@ def test_torsion_cv_strategy_all():
         "tor_1: TORSION ATOMS=2,3,4,5"
     ]
     assert plumed_str == expected
+
+
+def test_torsion_cv_alanine_dipeptide_phi_psi():
+    """
+    Integration test for phi and psi torsion angles in alanine dipeptide.
+
+    This tests the classical backbone torsion angles:
+    - Phi: C(=O) - N - CA - C(=O) dihedral
+    - Psi: N - CA - C(=O) - N dihedral
+
+    Molecule: Ace-Ala-NMe (CC(=O)-NH-CH(CH3)-CO-NH-CH3)
+    """
+    # Create alanine dipeptide
+    atoms = rdkit2ase.smiles2atoms("CC(=O)NC(C)C(=O)NC")
+
+    # Phi angle: C(carbonyl) - N - CA - C(carbonyl)
+    # Correct SMARTS pattern for phi
+    phi_selector = pn.SMARTSSelector(
+        pattern="[C:1](=O)[N:2][C:3][C:4](=O)"
+    )
+
+    phi_cv = pn.TorsionCV(
+        atoms=phi_selector,
+        prefix="phi"
+    )
+
+    phi_labels, phi_plumed = phi_cv.to_plumed(atoms)
+
+    # Phi should select atoms: C(1), N(3), CA(4), C(6)
+    assert phi_labels == ["phi"]
+    expected_phi = [
+        "phi: TORSION ATOMS=2,4,5,7"  # 1-indexed: atoms 1,3,4,6 -> 2,4,5,7
+    ]
+    assert phi_plumed == expected_phi
+
+    # Psi angle: N - CA - C(carbonyl) - N
+    # Correct SMARTS pattern for psi
+    psi_selector = pn.SMARTSSelector(
+        pattern="C(=O)[N:1][C:2][C:3](=O)[N:4]"
+    )
+
+    psi_cv = pn.TorsionCV(
+        atoms=psi_selector,
+        prefix="psi"
+    )
+
+    psi_labels, psi_plumed = psi_cv.to_plumed(atoms)
+
+    # Psi should select atoms: N(3), CA(4), C(6), N(8)
+    assert psi_labels == ["psi"]
+    expected_psi = [
+        "psi: TORSION ATOMS=4,5,7,9"  # 1-indexed: atoms 3,4,6,8 -> 4,5,7,9
+    ]
+    assert psi_plumed == expected_psi
