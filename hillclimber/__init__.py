@@ -1,5 +1,5 @@
 from hillclimber.actions import PrintAction
-from hillclimber.analysis import sum_hills
+from hillclimber.analysis import sum_hills, read_colvar, plot_cv_time_series
 from hillclimber.biases import RestraintBias, UpperWallBias, LowerWallBias
 from hillclimber.cvs import DistanceCV, AngleCV, CoordinationNumberCV, TorsionCV, RadiusOfGyrationCV
 from hillclimber.metadynamics import MetadBias, MetaDynamicsConfig, MetaDynamicsModel
@@ -28,4 +28,6 @@ __all__ = [
     "UpperWallBias",
     "LowerWallBias",
     "sum_hills",
+    "read_colvar",
+    "plot_cv_time_series",
 ]

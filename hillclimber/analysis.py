@@ -5,10 +5,13 @@ including free energy surface reconstruction and other post-processing tasks.
 """
 
 import os
+import re
 import shutil
 import subprocess
 import typing as t
 from pathlib import Path
+
+import numpy as np
 
 
 def _validate_multi_cv_params(
@@ -337,3 +340,297 @@ def sum_hills(
         print("sum_hills completed successfully")
 
     return result
+
+
+def read_colvar(
+    colvar_file: str | Path,
+) -> dict[str, np.ndarray]:
+    """Read a PLUMED COLVAR file and parse its contents.
+
+    This function reads a COLVAR file produced by PLUMED, extracts the field names
+    from the header (which starts with ``#! FIELDS``), and returns the data as a
+    dictionary mapping field names to numpy arrays.
+
+    Parameters
+    ----------
+    colvar_file : str or Path
+        Path to the COLVAR file to read.
+
+    Returns
+    -------
+    dict[str, np.ndarray]
+        Dictionary mapping field names to 1D numpy arrays containing the data.
+        Keys correspond to the fields specified in the COLVAR header.
+
+    Raises
+    ------
+    FileNotFoundError
+        If the COLVAR file does not exist.
+    ValueError
+        If the COLVAR file does not contain a valid ``#! FIELDS`` header.
+
+    Examples
+    --------
+    >>> import hillclimber as hc
+    >>> data = hc.read_colvar("COLVAR")
+    >>> print(data.keys())
+    dict_keys(['time', 'phi', 'psi'])
+    >>> print(data['time'][:5])
+    [0. 1. 2. 3. 4.]
+
+    Notes
+    -----
+    The COLVAR file format from PLUMED starts with a header line:
+    ``#! FIELDS time cv1 cv2 ...``
+
+    All subsequent lines starting with ``#`` are treated as comments and ignored.
+    Data lines are parsed as whitespace-separated numeric values.
+
+    Resources
+    ---------
+    - https://www.plumed.org/doc-master/user-doc/html/colvar.html
+    """
+    colvar_file = Path(colvar_file)
+
+    if not colvar_file.exists():
+        raise FileNotFoundError(f"COLVAR file not found: {colvar_file}")
+
+    # Read the file
+    with open(colvar_file, "r") as f:
+        lines = f.readlines()
+
+    # Find and parse the header
+    field_names: list[str] | None = None
+    for line in lines:
+        if line.startswith("#! FIELDS"):
+            # Extract field names from the header
+            # Format: "#! FIELDS time phi psi ..."
+            fields_match = re.match(r"#!\s*FIELDS\s+(.+)", line)
+            if fields_match:
+                field_names = fields_match.group(1).split()
+                break
+
+    if field_names is None:
+        raise ValueError(
+            f"COLVAR file {colvar_file} does not contain a valid '#! FIELDS' header"
+        )
+
+    # Parse data lines (skip comments)
+    data_lines = []
+    for line in lines:
+        # Skip comments and empty lines
+        if line.startswith("#") or not line.strip():
+            continue
+        # Parse numeric data
+        values = line.split()
+        if len(values) == len(field_names):
+            data_lines.append([float(v) for v in values])
+
+    # Convert to numpy array
+    data_array = np.array(data_lines)
+
+    # Create dictionary mapping field names to columns
+    result = {name: data_array[:, i] for i, name in enumerate(field_names)}
+
+    return result
+
+
+def plot_cv_time_series(
+    colvar_file: str | Path,
+    cv_names: list[str] | None = None,
+    time_unit: str = "ps",
+    exclude_patterns: list[str] | None = None,
+    figsize: tuple[float, float] = (8, 5),
+    kde_width: str = "25%",
+    colors: list[str] | None = None,
+    alpha: float = 0.5,
+    marker: str = "x",
+    marker_size: float = 10,
+) -> tuple[t.Any, t.Any]:
+    """Plot collective variables over time with KDE distributions.
+
+    This function creates a visualization showing CV evolution over time as scatter
+    plots, with kernel density estimation (KDE) plots displayed on the right side
+    to show the distribution of each CV.
+
+    Parameters
+    ----------
+    colvar_file : str or Path
+        Path to the COLVAR file to plot.
+    cv_names : list[str], optional
+        List of CV names to plot. If None, automatically detects CVs by excluding
+        common non-CV fields like 'time', 'sigma_*', 'height', 'biasf'.
+    time_unit : str, default='ps'
+        Unit label for the time axis.
+    exclude_patterns : list[str], optional
+        Additional regex patterns for field names to exclude from auto-detection.
+        Default excludes: 'time', 'sigma_.*', 'height', 'biasf'.
+    figsize : tuple[float, float], default=(8, 5)
+        Figure size in inches (width, height).
+    kde_width : str, default='25%'
+        Width of the KDE subplot as a percentage of the main plot width.
+    colors : list[str], optional
+        List of colors to use for each CV. If None, uses default color cycle.
+    alpha : float, default=0.5
+        Transparency for scatter points.
+    marker : str, default='x'
+        Marker style for scatter points.
+    marker_size : float, default=10
+        Size of scatter markers.
+
+    Returns
+    -------
+    fig : matplotlib.figure.Figure
+        The matplotlib figure object.
+    axes : tuple
+        Tuple of (main_axis, kde_axis) matplotlib axes objects.
+
+    Raises
+    ------
+    ImportError
+        If matplotlib or seaborn is not installed.
+    FileNotFoundError
+        If the COLVAR file does not exist.
+
+    Examples
+    --------
+    Basic usage with auto-detected CVs:
+
+    >>> import hillclimber as hc
+    >>> fig, axes = hc.plot_cv_time_series("COLVAR")
+
+    Plot specific CVs:
+
+    >>> fig, axes = hc.plot_cv_time_series("COLVAR", cv_names=["phi", "psi"])
+
+    Customize appearance:
+
+    >>> fig, axes = hc.plot_cv_time_series(
+    ...     "COLVAR",
+    ...     figsize=(10, 6),
+    ...     colors=["blue", "red"],
+    ...     alpha=0.7
+    ... )
+
+    Notes
+    -----
+    This function requires matplotlib and seaborn to be installed.
+
+    The function automatically detects CVs by excluding common metadata fields
+    such as 'time', 'sigma_*', 'height', and 'biasf'. You can specify additional
+    exclusion patterns or explicitly provide the CV names to plot.
+
+    Resources
+    ---------
+    - https://www.plumed.org/doc-master/user-doc/html/colvar.html
+    """
+    try:
+        import matplotlib.pyplot as plt
+        import seaborn as sns
+        from mpl_toolkits.axes_grid1 import make_axes_locatable
+    except ImportError as e:
+        raise ImportError(
+            "matplotlib and seaborn are required for plotting. "
+            "Install them with: pip install matplotlib seaborn"
+        ) from e
+
+    # Read the COLVAR file
+    data = read_colvar(colvar_file)
+
+    # Auto-detect CVs if not specified
+    if cv_names is None:
+        # Default exclusion patterns
+        default_exclude = [
+            r"^time$",
+            r"^sigma_.*$",
+            r"^height$",
+            r"^biasf$",
+        ]
+        if exclude_patterns is not None:
+            default_exclude.extend(exclude_patterns)
+
+        # Filter field names
+        detected_cvs: list[str] = []
+        for field in data.keys():
+            # Check if field matches any exclusion pattern
+            exclude = False
+            for pattern in default_exclude:
+                if re.match(pattern, field):
+                    exclude = True
+                    break
+            if not exclude:
+                detected_cvs.append(field)
+
+        if not detected_cvs:
+            raise ValueError(
+                "No CVs detected in COLVAR file. "
+                "All fields were excluded by the exclusion patterns."
+            )
+        cv_names = detected_cvs
+
+    # Verify that all requested CVs exist
+    missing_cvs = [cv for cv in cv_names if cv not in data]
+    if missing_cvs:
+        raise ValueError(
+            f"CVs not found in COLVAR file: {missing_cvs}. "
+            f"Available fields: {list(data.keys())}"
+        )
+
+    # Get time data
+    if "time" not in data:
+        raise ValueError("COLVAR file must contain a 'time' field")
+    time = data["time"]
+
+    # Default colors if not provided
+    if colors is None:
+        colors = plt.cm.tab10.colors  # type: ignore
+
+    # Set seaborn style
+    sns.set(style="whitegrid")
+
+    # Create figure
+    fig, ax = plt.subplots(figsize=figsize)
+
+    # Plot each CV
+    for i, cv_name in enumerate(cv_names):
+        color = colors[i % len(colors)]
+        cv_data = data[cv_name]
+        ax.scatter(
+            time,
+            cv_data,
+            c=[color],
+            label=cv_name,
+            marker=marker,
+            s=marker_size,
+            alpha=alpha,
+        )
+
+    ax.set_xlabel(f"Time / {time_unit}")
+    ax.set_ylabel("CV value")
+    ax.legend()
+
+    # Create KDE subplot on the right
+    divider = make_axes_locatable(ax)
+    ax_kde = divider.append_axes("right", size=kde_width, pad=0.1, sharey=ax)
+
+    # Plot KDE for each CV
+    for i, cv_name in enumerate(cv_names):
+        color = colors[i % len(colors)]
+        cv_data = data[cv_name]
+        sns.kdeplot(
+            y=cv_data,
+            ax=ax_kde,
+            color=color,
+            fill=True,
+            alpha=0.3,
+            linewidth=1.5,
+            label=cv_name,
+        )
+
+    # Clean up KDE axis
+    ax_kde.set_xlabel("Density")
+    ax_kde.yaxis.set_tick_params(labelleft=False)
+
+    plt.tight_layout()
+
+    return fig, (ax, ax_kde)
