@@ -1,4 +1,5 @@
 import dataclasses
+import typing as t
 from pathlib import Path
 
 import ase.units
@@ -59,8 +60,9 @@ class MetaDynamicsConfig:
         The temperature of the system in Kelvin, by default 300.0.
     file : str, optional
         The name of the hills file, by default "HILLS".
-    adaptive : str, optional
-        The adaptive scheme to use, by default "NONE".
+    adaptive : t.Literal["GEOM", "DIFF"] | None, optional
+        The adaptive scheme to use, by default None.
+        If None, no ADAPTIVE parameter is written to PLUMED.
     flush : int | None
         The frequency of flushing the output files. 
         If None, uses the plumed default.
@@ -76,7 +78,7 @@ class MetaDynamicsConfig:
     biasfactor: float | None = None
     temp: float = 300.0
     file: str = "HILLS"
-    adaptive: str = "NONE"  # NONE, DIFF, GEOM
+    adaptive: t.Literal["GEOM", "DIFF"] | None = None
     flush: int | None = None
 
 
@@ -218,16 +220,31 @@ class MetaDynamicsModel(zntrack.Node, NodeWithCalculator):
             f"PACE={self.config.pace}",
             f"TEMP={self.config.temp}",
             f"FILE={self.config.file}",
-            f"ADAPTIVE={self.config.adaptive}",
         ]
+        if self.config.adaptive is not None:
+            metad_parts.append(f"ADAPTIVE={self.config.adaptive}")
         if self.config.biasfactor is not None:
             metad_parts.append(f"BIASFACTOR={self.config.biasfactor}")
 
         # Add SIGMA, GRID_MIN, GRID_MAX, GRID_BIN only if any value is set
         if any(v is not None for v in sigmas):
-            metad_parts.append(
-                f"SIGMA={','.join(v if v is not None else '0.0' for v in sigmas)}"
-            )
+            # When using ADAPTIVE, PLUMED requires only one sigma value
+            if self.config.adaptive is not None:
+                # Validate that all sigma values are the same when adaptive is set
+                unique_sigmas = set(v for v in sigmas if v is not None)
+                if len(unique_sigmas) > 1:
+                    raise ValueError(
+                        f"When using ADAPTIVE={self.config.adaptive}, all CVs must have the same sigma value. "
+                        f"Found different sigma values: {unique_sigmas}"
+                    )
+                # Use the first non-None sigma value
+                sigma_value = next(v for v in sigmas if v is not None)
+                metad_parts.append(f"SIGMA={sigma_value}")
+            else:
+                # Standard mode: one sigma per CV
+                metad_parts.append(
+                    f"SIGMA={','.join(v if v is not None else '0.0' for v in sigmas)}"
+                )
         if any(v is not None for v in grid_mins):
             metad_parts.append(
                 f"GRID_MIN={','.join(v if v is not None else '0.0' for v in grid_mins)}"
