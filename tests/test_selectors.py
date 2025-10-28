@@ -19,14 +19,14 @@ def test_index_selector_grouped():
     assert selector.select(atoms) == [[0, 1], [2, 3]]
 
 
-def test_smiles_selector(small_ethnol_water):
+def test_smiles_selector(small_ethanol_water):
     # ethanol
     selector = pn.SMILESSelector(smiles="CCO")
-    selected_indices = selector.select(small_ethnol_water)
+    selected_indices = selector.select(small_ethanol_water)
     assert selected_indices == [list(range(9)), list(range(9, 18))]
     # water
     selector = pn.SMILESSelector(smiles="O")
-    selected_indices = selector.select(small_ethnol_water)
+    selected_indices = selector.select(small_ethanol_water)
     assert selected_indices == [[18, 19, 20], [21, 22, 23]]
 
 
@@ -150,22 +150,22 @@ def test_selector_combination_with_indexed():
     assert combined2.select(atoms) == [[0], [6]]
 
 
-def test_selector_with_smarts(small_ethnol_water):
+def test_selector_with_smarts(small_ethanol_water):
     """Test indexing with SMARTS selectors."""
     # Use [OH2] pattern to select only water (not ethanol oxygen)
     water_sel = pn.SMARTSSelector("[OH2]", hydrogens="include")
 
     # Test basic selection
-    waters = water_sel.select(small_ethnol_water)
+    waters = water_sel.select(small_ethanol_water)
     assert len(waters) == 2  # 2 water molecules
 
     # Test indexing
-    first_water = water_sel[0].select(small_ethnol_water)
+    first_water = water_sel[0].select(small_ethanol_water)
     assert len(first_water) == 1  # Only one group
     assert len(first_water[0]) == 3  # O + 2H
 
     # Test combination
     ethanol_sel = pn.SMARTSSelector("CCO")
     combined = water_sel + ethanol_sel
-    result = combined.select(small_ethnol_water)
+    result = combined.select(small_ethanol_water)
     assert len(result) == 4  # 2 waters + 2 ethanols

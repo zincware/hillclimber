@@ -3,7 +3,7 @@ import pytest
 import hillclimber as hc
 
 
-def test_opes_metad_basic_adaptive_sigma(small_ethnol_water):
+def test_opes_metad_basic_adaptive_sigma(small_ethanol_water):
     """Test basic OPES_METAD with adaptive sigma."""
     x1_selector = hc.SMILESSelector(smiles="CCO")
     x2_selector = hc.SMILESSelector(smiles="O")
@@ -25,7 +25,7 @@ def test_opes_metad_basic_adaptive_sigma(small_ethnol_water):
 
     opes_model = hc.OPESModel(
         config=opes_config,
-        data=small_ethnol_water,
+        data=small_ethanol_water,
         bias_cvs=[opes_bias],
         actions=[],
         model=None,  # type: ignore
@@ -39,10 +39,10 @@ def test_opes_metad_basic_adaptive_sigma(small_ethnol_water):
         "opes: OPES_METAD ARG=d12 PACE=500 BARRIER=40.0 TEMP=300.0 SIGMA=ADAPTIVE FILE=KERNELS COMPRESSION_THRESHOLD=1.0",
     ]
 
-    assert opes_model.to_plumed(small_ethnol_water) == expected
+    assert opes_model.to_plumed(small_ethanol_water) == expected
 
 
-def test_opes_metad_fixed_sigma(small_ethnol_water):
+def test_opes_metad_fixed_sigma(small_ethanol_water):
     """Test OPES_METAD with fixed sigma value."""
     x1_selector = hc.SMILESSelector(smiles="CCO")
     x2_selector = hc.SMILESSelector(smiles="O")
@@ -63,7 +63,7 @@ def test_opes_metad_fixed_sigma(small_ethnol_water):
 
     opes_model = hc.OPESModel(
         config=opes_config,
-        data=small_ethnol_water,
+        data=small_ethanol_water,
         bias_cvs=[opes_bias],
         actions=[],
         model=None,  # type: ignore
@@ -77,10 +77,10 @@ def test_opes_metad_fixed_sigma(small_ethnol_water):
         "opes: OPES_METAD ARG=d12 PACE=500 BARRIER=40.0 TEMP=300.0 SIGMA=0.2 FILE=KERNELS COMPRESSION_THRESHOLD=1.0",
     ]
 
-    assert opes_model.to_plumed(small_ethnol_water) == expected
+    assert opes_model.to_plumed(small_ethanol_water) == expected
 
 
-def test_opes_metad_explore_mode(small_ethnol_water):
+def test_opes_metad_explore_mode(small_ethanol_water):
     """Test OPES_METAD_EXPLORE variant."""
     x1_selector = hc.SMILESSelector(smiles="CCO")
     x2_selector = hc.SMILESSelector(smiles="O")
@@ -102,7 +102,7 @@ def test_opes_metad_explore_mode(small_ethnol_water):
 
     opes_model = hc.OPESModel(
         config=opes_config,
-        data=small_ethnol_water,
+        data=small_ethanol_water,
         bias_cvs=[opes_bias],
         actions=[],
         model=None,  # type: ignore
@@ -116,10 +116,10 @@ def test_opes_metad_explore_mode(small_ethnol_water):
         "opes: OPES_METAD_EXPLORE ARG=d12 PACE=500 BARRIER=40.0 TEMP=300.0 SIGMA=ADAPTIVE FILE=KERNELS COMPRESSION_THRESHOLD=1.0",
     ]
 
-    assert opes_model.to_plumed(small_ethnol_water) == expected
+    assert opes_model.to_plumed(small_ethanol_water) == expected
 
 
-def test_opes_metad_two_cvs_same_sigma(small_ethnol_water):
+def test_opes_metad_two_cvs_same_sigma(small_ethanol_water):
     """Test OPES_METAD with two CVs using same sigma."""
     x1_selector = hc.SMILESSelector(smiles="CCO")
     x2_selector = hc.SMILESSelector(smiles="O")
@@ -146,7 +146,7 @@ def test_opes_metad_two_cvs_same_sigma(small_ethnol_water):
 
     opes_model = hc.OPESModel(
         config=opes_config,
-        data=small_ethnol_water,
+        data=small_ethanol_water,
         bias_cvs=[opes_bias1, opes_bias2],
         actions=[],
         model=None,  # type: ignore
@@ -161,10 +161,10 @@ def test_opes_metad_two_cvs_same_sigma(small_ethnol_water):
         "opes: OPES_METAD ARG=d12,phi PACE=500 BARRIER=40.0 TEMP=300.0 SIGMA=ADAPTIVE FILE=KERNELS COMPRESSION_THRESHOLD=1.0",
     ]
 
-    assert opes_model.to_plumed(small_ethnol_water) == expected
+    assert opes_model.to_plumed(small_ethanol_water) == expected
 
 
-def test_opes_metad_two_cvs_different_sigma(small_ethnol_water):
+def test_opes_metad_two_cvs_different_sigma(small_ethanol_water):
     """Test OPES_METAD with two CVs using different sigma values."""
     x1_selector = hc.SMILESSelector(smiles="CCO")
     x2_selector = hc.SMILESSelector(smiles="O")
@@ -191,7 +191,7 @@ def test_opes_metad_two_cvs_different_sigma(small_ethnol_water):
 
     opes_model = hc.OPESModel(
         config=opes_config,
-        data=small_ethnol_water,
+        data=small_ethanol_water,
         bias_cvs=[opes_bias1, opes_bias2],
         actions=[],
         model=None,  # type: ignore
@@ -206,10 +206,10 @@ def test_opes_metad_two_cvs_different_sigma(small_ethnol_water):
         "opes: OPES_METAD ARG=d12,phi PACE=500 BARRIER=40.0 TEMP=300.0 SIGMA=0.1,0.2 FILE=KERNELS COMPRESSION_THRESHOLD=1.0",
     ]
 
-    assert opes_model.to_plumed(small_ethnol_water) == expected
+    assert opes_model.to_plumed(small_ethanol_water) == expected
 
 
-def test_opes_metad_with_optional_parameters(small_ethnol_water):
+def test_opes_metad_with_optional_parameters(small_ethanol_water):
     """Test OPES_METAD with optional parameters."""
     x1_selector = hc.SMILESSelector(smiles="CCO")
     x2_selector = hc.SMILESSelector(smiles="O")
@@ -236,7 +236,7 @@ def test_opes_metad_with_optional_parameters(small_ethnol_water):
 
     opes_model = hc.OPESModel(
         config=opes_config,
-        data=small_ethnol_water,
+        data=small_ethanol_water,
         bias_cvs=[opes_bias],
         actions=[],
         model=None,  # type: ignore
@@ -250,10 +250,10 @@ def test_opes_metad_with_optional_parameters(small_ethnol_water):
         "opes: OPES_METAD ARG=d12 PACE=500 BARRIER=40.0 TEMP=300.0 SIGMA=ADAPTIVE FILE=MY_KERNELS COMPRESSION_THRESHOLD=0.5 BIASFACTOR=10.0 ADAPTIVE_SIGMA_STRIDE=5000 SIGMA_MIN=0.01 CALC_WORK",
     ]
 
-    assert opes_model.to_plumed(small_ethnol_water) == expected
+    assert opes_model.to_plumed(small_ethanol_water) == expected
 
 
-def test_opes_metad_with_walkers_mpi(small_ethnol_water):
+def test_opes_metad_with_walkers_mpi(small_ethanol_water):
     """Test OPES_METAD with multiple walkers."""
     x1_selector = hc.SMILESSelector(smiles="CCO")
     x2_selector = hc.SMILESSelector(smiles="O")
@@ -275,7 +275,7 @@ def test_opes_metad_with_walkers_mpi(small_ethnol_water):
 
     opes_model = hc.OPESModel(
         config=opes_config,
-        data=small_ethnol_water,
+        data=small_ethanol_water,
         bias_cvs=[opes_bias],
         actions=[],
         model=None,  # type: ignore
@@ -289,10 +289,10 @@ def test_opes_metad_with_walkers_mpi(small_ethnol_water):
         "opes: OPES_METAD ARG=d12 PACE=500 BARRIER=40.0 TEMP=300.0 SIGMA=ADAPTIVE FILE=KERNELS COMPRESSION_THRESHOLD=1.0 WALKERS_MPI",
     ]
 
-    assert opes_model.to_plumed(small_ethnol_water) == expected
+    assert opes_model.to_plumed(small_ethanol_water) == expected
 
 
-def test_opes_metad_with_state_files(small_ethnol_water):
+def test_opes_metad_with_state_files(small_ethanol_water):
     """Test OPES_METAD with state file restart."""
     x1_selector = hc.SMILESSelector(smiles="CCO")
     x2_selector = hc.SMILESSelector(smiles="O")
@@ -316,7 +316,7 @@ def test_opes_metad_with_state_files(small_ethnol_water):
 
     opes_model = hc.OPESModel(
         config=opes_config,
-        data=small_ethnol_water,
+        data=small_ethanol_water,
         bias_cvs=[opes_bias],
         actions=[],
         model=None,  # type: ignore
@@ -330,10 +330,10 @@ def test_opes_metad_with_state_files(small_ethnol_water):
         "opes: OPES_METAD ARG=d12 PACE=500 BARRIER=40.0 TEMP=300.0 SIGMA=ADAPTIVE FILE=KERNELS COMPRESSION_THRESHOLD=1.0 STATE_WFILE=STATE STATE_RFILE=OLD_STATE STATE_WSTRIDE=1000",
     ]
 
-    assert opes_model.to_plumed(small_ethnol_water) == expected
+    assert opes_model.to_plumed(small_ethanol_water) == expected
 
 
-def test_opes_metad_with_actions(small_ethnol_water):
+def test_opes_metad_with_actions(small_ethanol_water):
     """Test OPES_METAD with additional actions (restraints, walls, print)."""
     x1_selector = hc.SMILESSelector(smiles="CCO")
     x2_selector = hc.SMILESSelector(smiles="O")
@@ -358,7 +358,7 @@ def test_opes_metad_with_actions(small_ethnol_water):
 
     opes_model = hc.OPESModel(
         config=opes_config,
-        data=small_ethnol_water,
+        data=small_ethanol_water,
         bias_cvs=[opes_bias],
         actions=[restraint, upper_wall],
         model=None,  # type: ignore
@@ -380,10 +380,10 @@ def test_opes_metad_with_actions(small_ethnol_water):
         "d12_uwall: UPPER_WALLS ARG=d12 AT=5.0 KAPPA=50.0 EXP=2",
     ]
 
-    assert opes_model.to_plumed(small_ethnol_water) == expected
+    assert opes_model.to_plumed(small_ethanol_water) == expected
 
 
-def test_opes_metad_with_flush(small_ethnol_water):
+def test_opes_metad_with_flush(small_ethanol_water):
     """Test OPES_METAD with FLUSH parameter."""
     x1_selector = hc.SMILESSelector(smiles="CCO")
     x2_selector = hc.SMILESSelector(smiles="O")
@@ -405,7 +405,7 @@ def test_opes_metad_with_flush(small_ethnol_water):
 
     opes_model = hc.OPESModel(
         config=opes_config,
-        data=small_ethnol_water,
+        data=small_ethanol_water,
         bias_cvs=[opes_bias],
         actions=[],
         model=None,  # type: ignore
@@ -420,10 +420,10 @@ def test_opes_metad_with_flush(small_ethnol_water):
         "FLUSH STRIDE=100",
     ]
 
-    assert opes_model.to_plumed(small_ethnol_water) == expected
+    assert opes_model.to_plumed(small_ethanol_water) == expected
 
 
-def test_opes_duplicate_cv_prefix(small_ethnol_water):
+def test_opes_duplicate_cv_prefix(small_ethanol_water):
     """Test that duplicate CV prefixes are detected."""
     x1_selector = hc.SMILESSelector(smiles="CCO")
     x2_selector = hc.SMILESSelector(smiles="O")
@@ -444,17 +444,17 @@ def test_opes_duplicate_cv_prefix(small_ethnol_water):
 
     opes_model = hc.OPESModel(
         config=opes_config,
-        data=small_ethnol_water,
+        data=small_ethanol_water,
         bias_cvs=[opes_bias, opes_bias],  # duplicate entry
         actions=[],
         model=None,  # type: ignore
     )
 
     with pytest.raises(ValueError, match="Duplicate CV prefix found: d12"):
-        opes_model.to_plumed(small_ethnol_water[0])
+        opes_model.to_plumed(small_ethanol_water[0])
 
 
-def test_opes_metad_diagonal_strategy(small_ethnol_water):
+def test_opes_metad_diagonal_strategy(small_ethanol_water):
     """Test OPES_METAD with diagonal/corresponding strategy - pair by index."""
     x1_selector = hc.SMILESSelector(smiles="CCO")
     x2_selector = hc.SMILESSelector(smiles="O")
@@ -476,7 +476,7 @@ def test_opes_metad_diagonal_strategy(small_ethnol_water):
 
     opes_model = hc.OPESModel(
         config=opes_config,
-        data=small_ethnol_water,
+        data=small_ethanol_water,
         bias_cvs=[opes_bias],
         actions=[],
         model=None,  # type: ignore
@@ -493,4 +493,4 @@ def test_opes_metad_diagonal_strategy(small_ethnol_water):
         "opes: OPES_METAD ARG=d12_0,d12_1 PACE=500 BARRIER=40.0 TEMP=300.0 SIGMA=0.15 FILE=KERNELS COMPRESSION_THRESHOLD=1.0",
     ]
 
-    assert opes_model.to_plumed(small_ethnol_water) == expected
+    assert opes_model.to_plumed(small_ethanol_water) == expected

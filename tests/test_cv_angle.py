@@ -5,7 +5,7 @@ import ase
 import hillclimber as pn
 
 
-def test_angle_cv_first_strategy(small_ethnol_water):
+def test_angle_cv_first_strategy(small_ethanol_water):
     """Test default FIRST strategy - only first groups."""
     x1_selector = pn.SMARTSSelector(pattern="[C]")  # Carbon atoms
     x2_selector = pn.SMILESSelector(smiles="O")  # Water (oxygen)
@@ -20,7 +20,7 @@ def test_angle_cv_first_strategy(small_ethnol_water):
         prefix="angle",
     )
 
-    labels, plumed_str = angle_cv.to_plumed(small_ethnol_water)
+    labels, plumed_str = angle_cv.to_plumed(small_ethanol_water)
 
     expected = [
         "angle_x1: COM ATOMS=1,2",
@@ -52,7 +52,7 @@ def test_angle_cv_single_atoms():
     assert labels == ["hoh_angle"]
 
 
-def test_angle_cv_first_atom_reduction(small_ethnol_water):
+def test_angle_cv_first_atom_reduction(small_ethanol_water):
     """Test FIRST_ATOM reduction strategy using selector indexing."""
     x1_selector = pn.SMARTSSelector(pattern="[C]")
     x2_selector = pn.SMILESSelector(smiles="O")
@@ -67,14 +67,14 @@ def test_angle_cv_first_atom_reduction(small_ethnol_water):
         prefix="angle",
     )
 
-    labels, plumed_str = angle_cv.to_plumed(small_ethnol_water)
+    labels, plumed_str = angle_cv.to_plumed(small_ethanol_water)
 
     expected = ["angle: ANGLE ATOMS=1,19,1"]
     assert plumed_str == expected
     assert labels == ["angle"]
 
 
-def test_angle_cv_cog_reduction(small_ethnol_water):
+def test_angle_cv_cog_reduction(small_ethanol_water):
     """Test CENTER_OF_GEOMETRY reduction."""
     x1_selector = pn.SMARTSSelector(pattern="[C]")
     x2_selector = pn.SMILESSelector(smiles="O")
@@ -89,7 +89,7 @@ def test_angle_cv_cog_reduction(small_ethnol_water):
         prefix="angle",
     )
 
-    labels, plumed_str = angle_cv.to_plumed(small_ethnol_water)
+    labels, plumed_str = angle_cv.to_plumed(small_ethanol_water)
 
     expected = [
         "angle_x1: CENTER ATOMS=1,2",
@@ -101,7 +101,7 @@ def test_angle_cv_cog_reduction(small_ethnol_water):
     assert labels == ["angle"]
 
 
-def test_angle_cv_all_pairs(small_ethnol_water):
+def test_angle_cv_all_pairs(small_ethanol_water):
     """Test ALL strategy - all combinations."""
     # Use simpler selectors to reduce output
     x1_selector = pn.IndexSelector(indices=[[0], [3]])  # Two single atoms
@@ -119,7 +119,7 @@ def test_angle_cv_all_pairs(small_ethnol_water):
         flatten=False,
     )
 
-    labels, plumed_str = angle_cv.to_plumed(small_ethnol_water)
+    labels, plumed_str = angle_cv.to_plumed(small_ethanol_water)
 
     # Smart GROUP creation: single atoms used directly (no GROUP commands)
     expected = [
@@ -132,7 +132,7 @@ def test_angle_cv_all_pairs(small_ethnol_water):
     assert labels == ["a_0_0_0", "a_0_0_1", "a_1_0_0", "a_1_0_1"]
 
 
-def test_angle_cv_corresponding(small_ethnol_water):
+def test_angle_cv_corresponding(small_ethanol_water):
     """Test DIAGONAL strategy - pair by index."""
     x1_selector = pn.IndexSelector(indices=[[0], [3], [6]])
     x2_selector = pn.IndexSelector(indices=[[1], [4], [7]])
@@ -149,7 +149,7 @@ def test_angle_cv_corresponding(small_ethnol_water):
         flatten=False,
     )
 
-    labels, plumed_str = angle_cv.to_plumed(small_ethnol_water)
+    labels, plumed_str = angle_cv.to_plumed(small_ethanol_water)
 
     # Smart GROUP creation: single atoms used directly (no GROUP commands)
     expected = [
@@ -161,7 +161,7 @@ def test_angle_cv_corresponding(small_ethnol_water):
     assert labels == ["a_0_0_0", "a_1_1_1", "a_2_2_2"]
 
 
-def test_angle_cv_first_to_all(small_ethnol_water):
+def test_angle_cv_first_to_all(small_ethanol_water):
     """Test one-to-many strategy - first of x1 and x2, all of x3."""
     x1_selector = pn.IndexSelector(indices=[[0]])
     x2_selector = pn.IndexSelector(indices=[[6]])
@@ -176,7 +176,7 @@ def test_angle_cv_first_to_all(small_ethnol_water):
         flatten=False,
     )
 
-    labels, plumed_str = angle_cv.to_plumed(small_ethnol_water)
+    labels, plumed_str = angle_cv.to_plumed(small_ethanol_water)
 
     # Smart GROUP creation: single atoms used directly (no GROUP commands)
     expected = [
@@ -188,7 +188,7 @@ def test_angle_cv_first_to_all(small_ethnol_water):
     assert labels == ["a_0_0_0", "a_0_0_1", "a_0_0_2"]
 
 
-def test_angle_cv_no_virtual_sites(small_ethnol_water):
+def test_angle_cv_no_virtual_sites(small_ethanol_water):
     """Test with flatten=True (direct atom lists, no virtual sites)."""
     x1_selector = pn.SMARTSSelector(pattern="[C]")
     x2_selector = pn.SMILESSelector(smiles="O")
@@ -204,14 +204,14 @@ def test_angle_cv_no_virtual_sites(small_ethnol_water):
         flatten=True,
     )
 
-    labels, plumed_str = angle_cv.to_plumed(small_ethnol_water)
+    labels, plumed_str = angle_cv.to_plumed(small_ethanol_water)
 
     expected = ["angle: ANGLE ATOMS=1,2,19,20,21,1,2"]
     assert plumed_str == expected
     assert labels == ["angle"]
 
 
-def test_angle_cv_visualization(small_ethnol_water):
+def test_angle_cv_visualization(small_ethanol_water):
     """Test that get_img works (even without _get_atom_highlights implemented)."""
     x1_selector = pn.IndexSelector(indices=[[0]])
     x2_selector = pn.IndexSelector(indices=[[6]])
@@ -222,11 +222,11 @@ def test_angle_cv_visualization(small_ethnol_water):
     )
 
     # Test that get_img doesn't raise an error
-    img = angle_cv.get_img(small_ethnol_water)
+    img = angle_cv.get_img(small_ethanol_water)
     assert img is not None
 
 
-def test_angle_cv_empty_selection(small_ethnol_water):
+def test_angle_cv_empty_selection(small_ethanol_water):
     """Test that empty selection raises appropriate error."""
     x1_selector = pn.SMARTSSelector(pattern="[Cl]")  # No chlorine
     x2_selector = pn.IndexSelector(indices=[[6]])
@@ -237,7 +237,7 @@ def test_angle_cv_empty_selection(small_ethnol_water):
     )
 
     try:
-        angle_cv.to_plumed(small_ethnol_water)
+        angle_cv.to_plumed(small_ethanol_water)
         assert False, "Should have raised ValueError"
     except ValueError as e:
         assert "Empty selection" in str(e)

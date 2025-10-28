@@ -5,7 +5,7 @@ import ase
 import hillclimber as pn
 
 
-def test_distance_cv_first_strategy(small_ethnol_water):
+def test_distance_cv_first_strategy(small_ethanol_water):
     """Test first strategy - distance between first ethanol and first water COMs."""
     x1_selector = pn.SMILESSelector(smiles="CCO")
     x2_selector = pn.SMILESSelector(smiles="O")
@@ -16,7 +16,7 @@ def test_distance_cv_first_strategy(small_ethnol_water):
         prefix="d12",
     )
 
-    labels, plumed_str = distance_cv.to_plumed(small_ethnol_water)
+    labels, plumed_str = distance_cv.to_plumed(small_ethanol_water)
 
     expected = [
         "d12_x1: COM ATOMS=1,2,3,4,5,6,7,8,9",
@@ -27,7 +27,7 @@ def test_distance_cv_first_strategy(small_ethnol_water):
     assert labels == ["d12"]
 
 
-def test_distance_cv_all_pairs(small_ethnol_water):
+def test_distance_cv_all_pairs(small_ethanol_water):
     """Test all pairs strategy - all ethanol-water COM combinations."""
     x1_selector = pn.SMILESSelector(smiles="CCO")
     x2_selector = pn.SMILESSelector(smiles="O")
@@ -39,7 +39,7 @@ def test_distance_cv_all_pairs(small_ethnol_water):
         pairwise="all",
     )
 
-    labels, plumed_str = distance_cv.to_plumed(small_ethnol_water)
+    labels, plumed_str = distance_cv.to_plumed(small_ethanol_water)
 
     # Should create 2x2=4 distances
     expected = [
@@ -56,7 +56,7 @@ def test_distance_cv_all_pairs(small_ethnol_water):
     assert labels == ["d_0", "d_1", "d_2", "d_3"]
 
 
-def test_distance_cv_corresponding(small_ethnol_water):
+def test_distance_cv_corresponding(small_ethanol_water):
     """Test diagonal/corresponding strategy - pair by index."""
     x1_selector = pn.SMILESSelector(smiles="CCO")
     x2_selector = pn.SMILESSelector(smiles="O")
@@ -68,7 +68,7 @@ def test_distance_cv_corresponding(small_ethnol_water):
         pairwise="diagonal",
     )
 
-    labels, plumed_str = distance_cv.to_plumed(small_ethnol_water)
+    labels, plumed_str = distance_cv.to_plumed(small_ethanol_water)
 
     # Should create 2 distances (min of 2 ethanols and 2 waters)
     expected = [
@@ -83,7 +83,7 @@ def test_distance_cv_corresponding(small_ethnol_water):
     assert labels == ["d_0", "d_1"]
 
 
-def test_distance_cv_first_to_all(small_ethnol_water):
+def test_distance_cv_first_to_all(small_ethanol_water):
     """Test first-to-all strategy - first ethanol to all waters."""
     x1_selector = pn.SMILESSelector(smiles="CCO")
     x2_selector = pn.SMILESSelector(smiles="O")
@@ -94,7 +94,7 @@ def test_distance_cv_first_to_all(small_ethnol_water):
         prefix="d",
     )
 
-    labels, plumed_str = distance_cv.to_plumed(small_ethnol_water)
+    labels, plumed_str = distance_cv.to_plumed(small_ethanol_water)
 
     # Should create 2 distances (1 ethanol to 2 waters)
     expected = [
@@ -129,7 +129,7 @@ def test_distance_cv_single_atoms():
     assert labels == ["h_h"]
 
 
-def test_distance_cv_first_atom_reduction(small_ethnol_water):
+def test_distance_cv_first_atom_reduction(small_ethanol_water):
     """Test first atom selection using selector indexing."""
     x1_selector = pn.SMILESSelector(smiles="CCO")
     x2_selector = pn.SMILESSelector(smiles="O")
@@ -142,7 +142,7 @@ def test_distance_cv_first_atom_reduction(small_ethnol_water):
         flatten=True,
     )
 
-    labels, plumed_str = distance_cv.to_plumed(small_ethnol_water)
+    labels, plumed_str = distance_cv.to_plumed(small_ethanol_water)
 
     # Should use first atoms directly
     expected = ["d: DISTANCE ATOMS=1,19"]
@@ -150,7 +150,7 @@ def test_distance_cv_first_atom_reduction(small_ethnol_water):
     assert labels == ["d"]
 
 
-def test_distance_cv_cog_reduction(small_ethnol_water):
+def test_distance_cv_cog_reduction(small_ethanol_water):
     """Test center of geometry (COG) reduction."""
     x1_selector = pn.SMILESSelector(smiles="CCO")
     x2_selector = pn.SMILESSelector(smiles="O")
@@ -161,7 +161,7 @@ def test_distance_cv_cog_reduction(small_ethnol_water):
         prefix="d",
     )
 
-    labels, plumed_str = distance_cv.to_plumed(small_ethnol_water)
+    labels, plumed_str = distance_cv.to_plumed(small_ethanol_water)
 
     expected = [
         "d_x1: CENTER ATOMS=1,2,3,4,5,6,7,8,9",
@@ -172,7 +172,7 @@ def test_distance_cv_cog_reduction(small_ethnol_water):
     assert labels == ["d"]
 
 
-def test_distance_cv_no_virtual_sites(small_ethnol_water):
+def test_distance_cv_no_virtual_sites(small_ethanol_water):
     """Test with flatten=True (direct atom lists, no virtual sites)."""
     x1_selector = pn.SMILESSelector(smiles="CCO")
     x2_selector = pn.SMILESSelector(smiles="O")
@@ -184,7 +184,7 @@ def test_distance_cv_no_virtual_sites(small_ethnol_water):
         flatten=True,  # Use atoms directly
     )
 
-    labels, plumed_str = distance_cv.to_plumed(small_ethnol_water)
+    labels, plumed_str = distance_cv.to_plumed(small_ethanol_water)
 
     # Should use flattened atom lists
     expected = ["d: DISTANCE ATOMS=1,2,3,4,5,6,7,8,9,19,20,21"]

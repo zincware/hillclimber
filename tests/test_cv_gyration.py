@@ -4,14 +4,14 @@ import pytest
 import hillclimber as pn
 
 
-def test_gyration_cv_basic(small_ethnol_water):
+def test_gyration_cv_basic(small_ethanol_water):
     """Test basic RadiusOfGyrationCV functionality."""
     # Select ethanol molecules
     ethanol_selector = pn.SMILESSelector(smiles="CCO")
 
     gyration_cv = pn.RadiusOfGyrationCV(atoms=ethanol_selector, prefix="rg")
 
-    labels, plumed_str = gyration_cv.to_plumed(small_ethnol_water)
+    labels, plumed_str = gyration_cv.to_plumed(small_ethanol_water)
 
     # Should use first ethanol molecule (atoms 1-9)
     expected = ["rg: GYRATION ATOMS=1,2,3,4,5,6,7,8,9"]
@@ -20,7 +20,7 @@ def test_gyration_cv_basic(small_ethnol_water):
     assert labels == ["rg"]
 
 
-def test_gyration_cv_with_type(small_ethnol_water):
+def test_gyration_cv_with_type(small_ethanol_water):
     """Test RadiusOfGyrationCV with specific TYPE parameter."""
     ethanol_selector = pn.SMILESSelector(smiles="CCO")
 
@@ -28,7 +28,7 @@ def test_gyration_cv_with_type(small_ethnol_water):
         atoms=ethanol_selector, prefix="rg_asp", type="ASPHERICITY"
     )
 
-    labels, plumed_str = gyration_cv.to_plumed(small_ethnol_water)
+    labels, plumed_str = gyration_cv.to_plumed(small_ethanol_water)
 
     expected = ["rg_asp: GYRATION ATOMS=1,2,3,4,5,6,7,8,9 TYPE=ASPHERICITY"]
 
@@ -36,7 +36,7 @@ def test_gyration_cv_with_type(small_ethnol_water):
     assert labels == ["rg_asp"]
 
 
-def test_gyration_cv_flatten_true(small_ethnol_water):
+def test_gyration_cv_flatten_true(small_ethanol_water):
     """Test RadiusOfGyrationCV with flatten=True (combine all groups)."""
     ethanol_selector = pn.SMILESSelector(smiles="CCO")
 
@@ -44,7 +44,7 @@ def test_gyration_cv_flatten_true(small_ethnol_water):
         atoms=ethanol_selector, prefix="rg_all", flatten=True
     )
 
-    labels, plumed_str = gyration_cv.to_plumed(small_ethnol_water)
+    labels, plumed_str = gyration_cv.to_plumed(small_ethanol_water)
 
     # Should combine both ethanol molecules (atoms 1-18)
     expected = ["rg_all: GYRATION ATOMS=1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18"]
@@ -53,7 +53,7 @@ def test_gyration_cv_flatten_true(small_ethnol_water):
     assert labels == ["rg_all"]
 
 
-def test_gyration_cv_strategy_all(small_ethnol_water):
+def test_gyration_cv_strategy_all(small_ethanol_water):
     """Test RadiusOfGyrationCV with strategy='all' (process all groups separately)."""
     ethanol_selector = pn.SMILESSelector(smiles="CCO")
 
@@ -61,7 +61,7 @@ def test_gyration_cv_strategy_all(small_ethnol_water):
         atoms=ethanol_selector, prefix="rg", flatten=False, strategy="all"
     )
 
-    labels, plumed_str = gyration_cv.to_plumed(small_ethnol_water)
+    labels, plumed_str = gyration_cv.to_plumed(small_ethanol_water)
 
     # Should create two separate gyration CVs, one for each ethanol molecule
     expected = [
@@ -73,7 +73,7 @@ def test_gyration_cv_strategy_all(small_ethnol_water):
     assert labels == ["rg_0", "rg_1"]
 
 
-# def test_gyration_cv_all_groups(small_ethnol_water):
+# def test_gyration_cv_all_groups(small_ethanol_water):
 #     """Test RadiusOfGyrationCV with all groups (both ethanol molecules)."""
 #     ethanol_selector = pn.SMILESSelector(smiles="CCO")
 
@@ -83,7 +83,7 @@ def test_gyration_cv_strategy_all(small_ethnol_water):
 #         multi_group="all_pairs"  # Process all groups independently
 #     )
 
-#     labels, plumed_str = gyration_cv.to_plumed(small_ethnol_water)
+#     labels, plumed_str = gyration_cv.to_plumed(small_ethanol_water)
 
 #     # Should create two separate gyration CVs for each ethanol molecule
 #     expected = [
@@ -148,7 +148,7 @@ def test_gyration_cv_strategy_all(small_ethnol_water):
 #     assert labels == ["rg_heavy"]
 
 
-# def test_gyration_cv_with_gtpc_types(small_ethnol_water):
+# def test_gyration_cv_with_gtpc_types(small_ethanol_water):
 #     """Test RadiusOfGyrationCV with different gyration tensor principal components."""
 #     ethanol_selector = pn.SMILESSelector(smiles="CCO")
 
@@ -160,7 +160,7 @@ def test_gyration_cv_strategy_all(small_ethnol_water):
 #             type=gtpc_type
 #         )
 
-#         labels, plumed_str = gyration_cv.to_plumed(small_ethnol_water)
+#         labels, plumed_str = gyration_cv.to_plumed(small_ethanol_water)
 
 #         expected = [
 #             f"rg_gtpc{i}: GYRATION ATOMS=1,2,3,4,5,6,7,8,9 TYPE={gtpc_type}"
@@ -264,7 +264,7 @@ def test_gyration_cv_strategy_all(small_ethnol_water):
 #         assert labels == [f"rg_{gyration_type.lower()}"]
 
 
-# def test_gyration_cv_visualization(small_ethnol_water):
+# def test_gyration_cv_visualization(small_ethanol_water):
 #     """Test that visualization highlights work properly."""
 #     ethanol_selector = pn.SMILESSelector(smiles="CCO")
 
@@ -274,7 +274,7 @@ def test_gyration_cv_strategy_all(small_ethnol_water):
 #     )
 
 #     # Test that _get_atom_highlights returns expected structure
-#     highlights = gyration_cv._get_atom_highlights(small_ethnol_water)
+#     highlights = gyration_cv._get_atom_highlights(small_ethanol_water)
 
 #     # Should highlight the first ethanol molecule atoms (0-8 in 0-based indexing)
 #     expected_highlighted_atoms = set(range(9))  # First 9 atoms (ethanol)
@@ -287,7 +287,7 @@ def test_gyration_cv_strategy_all(small_ethnol_water):
 #         assert color == (0.2, 0.8, 0.2)  # Green color
 
 
-# def test_gyration_cv_get_img(small_ethnol_water):
+# def test_gyration_cv_get_img(small_ethanol_water):
 #     """Test that get_img method works without errors."""
 #     ethanol_selector = pn.SMILESSelector(smiles="CCO")
 
@@ -297,7 +297,7 @@ def test_gyration_cv_strategy_all(small_ethnol_water):
 #     )
 
 #     # This should not raise an error
-#     img = gyration_cv.get_img(small_ethnol_water)
+#     img = gyration_cv.get_img(small_ethanol_water)
 
 #     # Check that we get a PIL Image
 #     from PIL import Image
