@@ -1,6 +1,7 @@
 # --- IMPORTS ---
 # Standard library
 from __future__ import annotations
+
 import dataclasses
 from dataclasses import dataclass
 from typing import Dict, List, Literal, Optional, Tuple, Union
@@ -15,7 +16,6 @@ from rdkit.Chem import Draw
 # Local
 from hillclimber.interfaces import AtomSelector, CollectiveVariable
 from hillclimber.virtual_atoms import VirtualAtom
-
 
 # --- TYPE HINTS ---
 GroupReductionStrategyType = Literal[
@@ -32,7 +32,9 @@ class _BasePlumedCV(CollectiveVariable):
 
     prefix: str
 
-    def _get_atom_highlights(self, atoms: Atoms, **kwargs) -> Optional[AtomHighlightMap]:
+    def _get_atom_highlights(
+        self, atoms: Atoms, **kwargs
+    ) -> Optional[AtomHighlightMap]:
         """
         Get atom indices and colors for visualization.
 
@@ -96,7 +98,7 @@ class _BasePlumedCV(CollectiveVariable):
                 canonical_smiles = Chem.MolToSmiles(frag_mol)
                 highlighted_local_indices = tuple(sorted(current_highlights.keys()))
                 molecule_signature = (canonical_smiles, highlighted_local_indices)
-                
+
                 if molecule_signature not in seen_molecules:
                     seen_molecules.add(molecule_signature)
                     mols_to_draw.append(frag_mol)
@@ -121,9 +123,7 @@ class _BasePlumedCV(CollectiveVariable):
         )
 
     @staticmethod
-    def _extract_labels(
-        commands: List[str], prefix: str, cv_keyword: str
-    ) -> List[str]:
+    def _extract_labels(commands: List[str], prefix: str, cv_keyword: str) -> List[str]:
         """Extracts generated CV labels from a list of PLUMED commands."""
         return [
             cmd.split(":", 1)[0].strip()
@@ -427,7 +427,11 @@ class AngleCV(_BasePlumedCV):
     ) -> Optional[AtomHighlightMap]:
         """Get atom highlights for visualization."""
         # Skip for VirtualAtom inputs
-        if isinstance(self.x1, VirtualAtom) or isinstance(self.x2, VirtualAtom) or isinstance(self.x3, VirtualAtom):
+        if (
+            isinstance(self.x1, VirtualAtom)
+            or isinstance(self.x2, VirtualAtom)
+            or isinstance(self.x3, VirtualAtom)
+        ):
             return None
 
         groups1 = self.x1.select(atoms)
@@ -586,7 +590,9 @@ class AngleCV(_BasePlumedCV):
             if self.strategy == "first":
                 triplets = [(0, 0, 0)] if n1 > 0 and n2 > 0 and n3 > 0 else []
             elif self.strategy == "all":
-                triplets = [(i, j, k) for i in range(n1) for j in range(n2) for k in range(n3)]
+                triplets = [
+                    (i, j, k) for i in range(n1) for j in range(n2) for k in range(n3)
+                ]
             elif self.strategy == "diagonal":
                 n_triplets = min(n1, n2, n3)
                 triplets = [(i, i, i) for i in range(n_triplets)]
@@ -953,7 +959,9 @@ class TorsionCV(_BasePlumedCV):
 
         commands = []
         for i in indices_to_process:
-            label = self.prefix if len(indices_to_process) == 1 else f"{self.prefix}_{i}"
+            label = (
+                self.prefix if len(indices_to_process) == 1 else f"{self.prefix}_{i}"
+            )
             atom_list = ",".join(str(idx + 1) for idx in groups[i])
             commands.append(f"{label}: TORSION ATOMS={atom_list}")
         return commands
@@ -1043,7 +1051,11 @@ class RadiusOfGyrationCV(_BasePlumedCV):
                 indices_to_process = list(range(len(groups)))
 
             for i in indices_to_process:
-                label = self.prefix if len(indices_to_process) == 1 else f"{self.prefix}_{i}"
+                label = (
+                    self.prefix
+                    if len(indices_to_process) == 1
+                    else f"{self.prefix}_{i}"
+                )
                 atom_list = ",".join(str(idx + 1) for idx in groups[i])
                 command = f"{label}: GYRATION ATOMS={atom_list}"
                 if self.type != "RADIUS":

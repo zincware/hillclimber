@@ -1,5 +1,6 @@
 import hillclimber as pn
 
+
 def test_coordination_cv_na_water_smiles(na_cl_water):
     """Test coordination of Na+ with water COMs using new API."""
     x1_selector = pn.SMILESSelector(smiles="[Na+]")
@@ -29,7 +30,7 @@ def test_coordination_cv_na_water_smiles(na_cl_water):
         "cn_x2_8: COM ATOMS=27,28,29",
         "cn_x2_9: COM ATOMS=30,31,32",
         "cn_x2_group: GROUP ATOMS=cn_x2_0,cn_x2_1,cn_x2_2,cn_x2_3,cn_x2_4,cn_x2_5,cn_x2_6,cn_x2_7,cn_x2_8,cn_x2_9",
-        "cn: COORDINATION GROUPA=1 GROUPB=cn_x2_group R_0=0.3 NN=6 D_0=0.0"
+        "cn: COORDINATION GROUPA=1 GROUPB=cn_x2_group R_0=0.3 NN=6 D_0=0.0",
     ]
     assert lines == expected
     assert labels == ["cn"]
@@ -47,6 +48,7 @@ def test_coordination_cv_na_water_smiles(na_cl_water):
     assert list(na_cl_water[[26, 27, 28]].symbols) == ["O", "H", "H"]
     assert list(na_cl_water[[29, 30, 31]].symbols) == ["O", "H", "H"]
 
+
 def test_coordination_cv_na_water_smarts_com_per_group(na_cl_water):
     """Test coordination with SMARTS selector (oxygen only, no hydrogens)."""
     x1_selector = pn.SMILESSelector(smiles="[Na+]")
@@ -56,7 +58,9 @@ def test_coordination_cv_na_water_smarts_com_per_group(na_cl_water):
     # New API: x1 is single atom, x2 is VirtualAtom with "com" for each oxygen
     coordination_cv = pn.CoordinationNumberCV(
         x1=x1_selector[0],  # Single Na atom
-        x2=pn.VirtualAtom(x2_selector, "com"),  # COM for each oxygen (single atom groups)
+        x2=pn.VirtualAtom(
+            x2_selector, "com"
+        ),  # COM for each oxygen (single atom groups)
         prefix="cn",
         r_0=0.3,
         d_0=0.0,
@@ -76,7 +80,7 @@ def test_coordination_cv_na_water_smarts_com_per_group(na_cl_water):
         "cn_x2_8: COM ATOMS=27",
         "cn_x2_9: COM ATOMS=30",
         "cn_x2_group: GROUP ATOMS=cn_x2_0,cn_x2_1,cn_x2_2,cn_x2_3,cn_x2_4,cn_x2_5,cn_x2_6,cn_x2_7,cn_x2_8,cn_x2_9",
-        "cn: COORDINATION GROUPA=1 GROUPB=cn_x2_group R_0=0.3 NN=6 D_0=0.0"
+        "cn: COORDINATION GROUPA=1 GROUPB=cn_x2_group R_0=0.3 NN=6 D_0=0.0",
     ]
     assert lines == expected
     assert labels == ["cn"]

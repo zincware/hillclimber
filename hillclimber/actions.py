@@ -47,10 +47,7 @@ class PrintAction(PlumedGenerator):
             all_labels.update(labels)
 
         # Create the PRINT command with the unique labels
-        print_command = (
-            f"PRINT ARG={','.join(sorted(all_labels))} STRIDE={self.stride} FILE={self.file}"
-        )
+        print_command = f"PRINT ARG={','.join(sorted(all_labels))} STRIDE={self.stride} FILE={self.file}"
 
         # Return the command as a list
         return [print_command]
-

@@ -1,5 +1,6 @@
-import hillclimber as pn
 import ase
+
+import hillclimber as pn
 
 
 def test_index_selector(ethanol_water):
@@ -81,9 +82,16 @@ def test_selector_atom_indexing():
     assert selector[0][[0, 2]].select(atoms) == [[0, 2]]
 
     # Test atom indexing on multiple groups
-    assert selector[0:2][0].select(atoms) == [[0], [3]]  # First atom of first two groups
+    assert selector[0:2][0].select(atoms) == [
+        [0],
+        [3],
+    ]  # First atom of first two groups
     assert selector[:][-1].select(atoms) == [[2], [5], [8]]  # Last atom of all groups
-    assert selector[:][0:2].select(atoms) == [[0, 1], [3, 4], [6, 7]]  # First two atoms of all groups
+    assert selector[:][0:2].select(atoms) == [
+        [0, 1],
+        [3, 4],
+        [6, 7],
+    ]  # First two atoms of all groups
 
 
 def test_selector_three_level_indexing_error():

@@ -1,5 +1,7 @@
-import hillclimber as pn
 import pytest
+
+import hillclimber as pn
+
 
 def test_distance_cv_corresponding_strategy(small_ethnol_water):
     """Test diagonal/corresponding strategy - pair by index."""
@@ -94,8 +96,9 @@ def test_distance_cv_first_strategy(small_ethnol_water):
         "d12: DISTANCE ATOMS=d12_x1,d12_x2",
         "metad: METAD ARG=d12 HEIGHT=0.5 PACE=150 TEMP=300.0 FILE=HILLS BIASFACTOR=10.0 SIGMA=0.1 GRID_MIN=0.0 GRID_MAX=10.0 GRID_BIN=100",
         "PRINT ARG=d12 STRIDE=100 FILE=COLVAR",
-        'FLUSH STRIDE=100',
+        "FLUSH STRIDE=100",
     ]
+
 
 def test_duplicate_cv_prefix(small_ethnol_water):
     x1_selector = pn.SMILESSelector(smiles="CCO")
@@ -126,7 +129,7 @@ def test_duplicate_cv_prefix(small_ethnol_water):
     meta_d_model = pn.MetaDynamicsModel(
         config=meta_d_config,
         data=small_ethnol_water,
-        bias_cvs=[biased_distance_cv, biased_distance_cv], # duplicate entry
+        bias_cvs=[biased_distance_cv, biased_distance_cv],  # duplicate entry
         actions=[],  # PrintCVAction is automatically added
         model=None,  # type: ignore
     )
@@ -181,7 +184,9 @@ def test_cv_used_in_bias_and_wall(small_ethnol_water):
 
     # Check that the CV is defined only once
     cv_definitions = [line for line in result if line.startswith("d:")]
-    assert len(cv_definitions) == 1, f"Expected 1 CV definition, got {len(cv_definitions)}: {cv_definitions}"
+    assert len(cv_definitions) == 1, (
+        f"Expected 1 CV definition, got {len(cv_definitions)}: {cv_definitions}"
+    )
 
     # Check that both METAD and UPPER_WALLS are present
     assert any("metad: METAD" in line for line in result)
@@ -459,6 +464,6 @@ def test_adaptive_multiple_cvs_different_sigma_raises_error(small_ethnol_water):
 
     with pytest.raises(
         ValueError,
-        match="When using ADAPTIVE=GEOM, all CVs must have the same sigma value"
+        match="When using ADAPTIVE=GEOM, all CVs must have the same sigma value",
     ):
         meta_d_model.to_plumed(small_ethnol_water)

@@ -1,5 +1,7 @@
 """Tests for DistanceCV using the new API with VirtualAtom and flatten/pairwise parameters."""
+
 import ase
+
 import hillclimber as pn
 
 
@@ -88,7 +90,7 @@ def test_distance_cv_first_to_all(small_ethnol_water):
 
     distance_cv = pn.DistanceCV(
         x1=pn.VirtualAtom(x1_selector[0], "com"),  # First ethanol only
-        x2=pn.VirtualAtom(x2_selector, "com"),     # All waters
+        x2=pn.VirtualAtom(x2_selector, "com"),  # All waters
         prefix="d",
     )
 

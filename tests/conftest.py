@@ -2,7 +2,6 @@ import pytest
 import rdkit2ase
 
 
-
 @pytest.fixture(scope="session")
 def ethanol_water():
     ethanol = rdkit2ase.smiles2conformers("CCO", numConfs=100)
@@ -36,4 +35,3 @@ def na_cl_water():
         packmol="packmol",
     )
     return box.copy()
-

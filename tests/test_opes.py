@@ -1,5 +1,6 @@
-import hillclimber as hc
 import pytest
+
+import hillclimber as hc
 
 
 def test_opes_metad_basic_adaptive_sigma(small_ethnol_water):

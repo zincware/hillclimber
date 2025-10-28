@@ -1,6 +1,8 @@
 """Tests for VirtualAtom functionality including combination and nesting."""
-import hillclimber as hc
+
 import ase
+
+import hillclimber as hc
 
 
 def test_virtual_atom_combination():
@@ -145,7 +147,10 @@ def test_virtual_atom_with_first_reduction():
     # Should return atom indices directly, no virtual site commands
     assert len(labels) == 2
     assert len(commands) == 0
-    assert labels == ["1", "4"]  # First atoms (0-indexed in Python, 1-indexed in PLUMED)
+    assert labels == [
+        "1",
+        "4",
+    ]  # First atoms (0-indexed in Python, 1-indexed in PLUMED)
 
 
 def test_virtual_atom_combination_to_plumed():

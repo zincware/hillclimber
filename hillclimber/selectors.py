@@ -6,7 +6,6 @@ import rdkit2ase
 
 from hillclimber.interfaces import AtomSelector
 
-
 # --- Indexable Selector Wrappers ---
 
 
@@ -17,6 +16,7 @@ class _GroupIndexedSelector(AtomSelector):
     This is an internal class created when you index a selector at the group level.
     For example: water_sel[0] or water_sel[0:2]
     """
+
     selector: AtomSelector
     group_index: int | slice | list[int]
 
@@ -42,7 +42,9 @@ class _GroupIndexedSelector(AtomSelector):
         elif isinstance(self.group_index, slice):
             return groups[self.group_index]  # Python handles negative indices in slices
         else:  # list[int]
-            return [groups[i] for i in self.group_index]  # Negative indices work here too
+            return [
+                groups[i] for i in self.group_index
+            ]  # Negative indices work here too
 
 
 @dataclasses.dataclass
@@ -52,6 +54,7 @@ class _AtomIndexedSelector(AtomSelector):
     This is an internal class created when you apply two levels of indexing.
     For example: water_sel[0][0] or water_sel[0:2][1:3]
     """
+
     group_selector: _GroupIndexedSelector
     atom_index: int | slice | list[int]
 
@@ -75,7 +78,9 @@ class _AtomIndexedSelector(AtomSelector):
             elif isinstance(self.atom_index, slice):
                 result.append(group[self.atom_index])  # Negative indices in slices work
             else:  # list[int]
-                result.append([group[i] for i in self.atom_index])  # Negative indices work
+                result.append(
+                    [group[i] for i in self.atom_index]
+                )  # Negative indices work
 
         return result
 
@@ -87,6 +92,7 @@ class _CombinedSelector(AtomSelector):
     This is an internal class created when you combine selectors with +.
     For example: water_sel + ethanol_sel
     """
+
     selectors: list[AtomSelector]
 
     def __getitem__(self, idx: int | slice | list[int]) -> AtomSelector:

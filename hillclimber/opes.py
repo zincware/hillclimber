@@ -288,7 +288,7 @@ class OPESModel(zntrack.Node, NodeWithCalculator):
         # - ENERGY: ASE uses eV, PLUMED native is kJ/mol → 1 eV = 96.485 kJ/mol
         # See: https://www.plumed.org/doc-master/user-doc/html/ (MD engine integration docs)
         plumed_lines.append(
-            f"UNITS LENGTH=A TIME={1/1000} ENERGY={ase.units.mol / ase.units.kJ}"
+            f"UNITS LENGTH=A TIME={1 / 1000} ENERGY={ase.units.mol / ase.units.kJ}"
         )
 
         for bias_cv in self.bias_cvs:
@@ -329,7 +329,9 @@ class OPESModel(zntrack.Node, NodeWithCalculator):
         if self.config.biasfactor is not None:
             opes_parts.append(f"BIASFACTOR={self.config.biasfactor}")
         if self.config.adaptive_sigma_stride is not None:
-            opes_parts.append(f"ADAPTIVE_SIGMA_STRIDE={self.config.adaptive_sigma_stride}")
+            opes_parts.append(
+                f"ADAPTIVE_SIGMA_STRIDE={self.config.adaptive_sigma_stride}"
+            )
         if self.config.sigma_min is not None:
             opes_parts.append(f"SIGMA_MIN={self.config.sigma_min}")
         if self.config.state_wfile is not None:

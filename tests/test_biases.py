@@ -37,7 +37,9 @@ def test_restraint_custom_label(small_ethnol_water):
         prefix="d",
     )
 
-    restraint = hc.RestraintBias(cv=distance_cv, kappa=150.0, at=3.0, label="my_restraint")
+    restraint = hc.RestraintBias(
+        cv=distance_cv, kappa=150.0, at=3.0, label="my_restraint"
+    )
 
     plumed_commands = restraint.to_plumed(small_ethnol_water)
 

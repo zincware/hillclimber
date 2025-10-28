@@ -189,7 +189,7 @@ class MetaDynamicsModel(zntrack.Node, NodeWithCalculator):
 
     def to_plumed(self, atoms: ase.Atoms) -> list[str]:
         """Generate PLUMED input string for the metadynamics model."""
-                # check for duplicate CV prefixes
+        # check for duplicate CV prefixes
         cv_labels = set()
         for bias_cv in self.bias_cvs:
             if bias_cv.cv.prefix in cv_labels:
@@ -207,7 +207,7 @@ class MetaDynamicsModel(zntrack.Node, NodeWithCalculator):
         # - ENERGY: ASE uses eV, PLUMED native is kJ/mol → 1 eV = 96.485 kJ/mol
         # See: https://www.plumed.org/doc-master/user-doc/html/ (MD engine integration docs)
         plumed_lines.append(
-            f"UNITS LENGTH=A TIME={1/1000} ENERGY={ase.units.mol / ase.units.kJ}"
+            f"UNITS LENGTH=A TIME={1 / 1000} ENERGY={ase.units.mol / ase.units.kJ}"
         )
 
         for bias_cv in self.bias_cvs:

@@ -1,8 +1,10 @@
-import hillclimber as hc
+import dataclasses
+from pathlib import Path
+
 import ipsuite as ips
 import zntrack
-from pathlib import Path
-import dataclasses
+
+import hillclimber as hc
 
 # Configure the simulation parameters
 TEMPERATURE = 300.0  # Kelvin
@@ -20,23 +22,26 @@ class ANIImport:
     device: str = "cuda"
 
     def get_calculator(self, **kwargs):
-        import torchani
         import torch
-        device = torch.device('cuda:0')
+        import torchani
+
+        device = torch.device("cuda:0")
         model = torchani.models.ANI2x().to(device)
         return model.ase()
 
 
 class FASTAtoms(zntrack.Node):
     """Convert FASTA sequence to Atoms object using RDKit."""
+
     text: str = zntrack.params()
     frames_path: Path = zntrack.outs_path(zntrack.nwd / "frames.xyz")
     smiles: str = zntrack.outs()
 
     def run(self):
+        import ase.io
         import rdkit2ase
         from rdkit import Chem
-        import ase.io
+
         mol = Chem.MolFromFASTA(self.text)
         self.smiles = Chem.MolToSmiles(mol)
         frames = rdkit2ase.rdkit2ase(mol)
@@ -45,8 +50,8 @@ class FASTAtoms(zntrack.Node):
     @property
     def frames(self) -> list:
         import ase.io
-        return list(ase.io.iread(self.frames_path))
 
+        return list(ase.io.iread(self.frames_path))
 
 
 def main():
@@ -131,6 +136,7 @@ def main():
 
     project.repro()
 
+
 def eval():
     import matplotlib.pyplot as plt
     import numpy as np
@@ -140,11 +146,11 @@ def eval():
         hills_file="nodes/ASEMD/model/-1/HILLS",
         bin=500,
         outfile="fes.dat",
-        plumed_bin_path="/data/fzills/tools/plumed2/bin"
+        plumed_bin_path="/data/fzills/tools/plumed2/bin",
     )
 
     # Load the fes.dat file
-    data = np.loadtxt('fes.dat', comments='#')
+    data = np.loadtxt("fes.dat", comments="#")
 
     # Extract columns
     d_na_cl = data[:, 0]  # Collective variable (distance)
@@ -154,15 +160,14 @@ def eval():
     _, (ax1) = plt.subplots(1, 1, sharex=True)
 
     # Plot free energy surface
-    ax1.plot(d_na_cl, free_energy, 'b-', linewidth=2)
-    ax1.set_ylabel('Free Energy (kJ/mol)', fontsize=12)
+    ax1.plot(d_na_cl, free_energy, "b-", linewidth=2)
+    ax1.set_ylabel("Free Energy (kJ/mol)", fontsize=12)
     ax1.grid(True, alpha=0.3)
-    ax1.axvline(x=7.5, color='k', linestyle='--', alpha=0.3)
-    ax1.axvline(x=15.5/ 2 , color='k', linestyle='-.', alpha=0.3)
+    ax1.axvline(x=7.5, color="k", linestyle="--", alpha=0.3)
+    ax1.axvline(x=15.5 / 2, color="k", linestyle="-.", alpha=0.3)
 
     plt.tight_layout()
     plt.show()
-
 
 
 if __name__ == "__main__":

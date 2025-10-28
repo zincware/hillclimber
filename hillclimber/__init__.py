@@ -1,7 +1,13 @@
 from hillclimber.actions import PrintAction
-from hillclimber.analysis import sum_hills, read_colvar, plot_cv_time_series
-from hillclimber.biases import RestraintBias, UpperWallBias, LowerWallBias
-from hillclimber.cvs import DistanceCV, AngleCV, CoordinationNumberCV, TorsionCV, RadiusOfGyrationCV
+from hillclimber.analysis import plot_cv_time_series, read_colvar, sum_hills
+from hillclimber.biases import LowerWallBias, RestraintBias, UpperWallBias
+from hillclimber.cvs import (
+    AngleCV,
+    CoordinationNumberCV,
+    DistanceCV,
+    RadiusOfGyrationCV,
+    TorsionCV,
+)
 from hillclimber.metadynamics import MetadBias, MetaDynamicsConfig, MetaDynamicsModel
 from hillclimber.opes import OPESBias, OPESConfig, OPESModel
 from hillclimber.selectors import IndexSelector, SMARTSSelector, SMILESSelector

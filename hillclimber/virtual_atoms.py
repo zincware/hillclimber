@@ -167,7 +167,7 @@ class VirtualAtom:
         return VirtualAtom(
             atoms=combined_atoms,
             reduction=self.reduction,
-            label=None  # Reset label for combined VirtualAtom
+            label=None,  # Reset label for combined VirtualAtom
         )
 
     def select(self, atoms: ase.Atoms) -> list[list[int]]:
@@ -278,7 +278,9 @@ class VirtualAtom:
         commands = []
 
         for i, group in enumerate(groups):
-            if self.reduction == "first" or (self.reduction == "flatten" and len(group) == 1):
+            if self.reduction == "first" or (
+                self.reduction == "flatten" and len(group) == 1
+            ):
                 # No virtual site needed, use atom index directly
                 labels.append(str(group[0] + 1))
             else:
@@ -326,7 +328,11 @@ class VirtualAtom:
         1
         """
         # For nested VirtualAtoms with com/cog/flatten reduction, we create a single virtual site
-        if isinstance(self.atoms, VirtualAtom) and self.reduction in ["com", "cog", "flatten"]:
+        if isinstance(self.atoms, VirtualAtom) and self.reduction in [
+            "com",
+            "cog",
+            "flatten",
+        ]:
             return 1
         # For nested VirtualAtoms with "first" reduction, pass through
         elif isinstance(self.atoms, VirtualAtom) and self.reduction == "first":

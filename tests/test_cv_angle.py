@@ -1,4 +1,5 @@
 """Tests for AngleCV using the new API with VirtualAtom and flatten/strategy parameters."""
+
 import ase
 
 import hillclimber as pn

@@ -1,7 +1,9 @@
 """Tests for new DistanceCV functionality with flatten and pairwise parameters."""
-import hillclimber as hc
+
 import ase
 import pytest
+
+import hillclimber as hc
 
 
 @pytest.fixture
@@ -27,7 +29,7 @@ def test_distance_with_virtual_atom_one_to_one(test_atoms, water_sel, ethanol_se
     cv = hc.DistanceCV(
         x1=hc.VirtualAtom(water_sel[0], "com"),
         x2=hc.VirtualAtom(ethanol_sel[0], "com"),
-        prefix="d"
+        prefix="d",
     )
 
     labels, commands = cv.to_plumed(test_atoms)
@@ -48,7 +50,7 @@ def test_distance_with_virtual_atom_one_to_many(test_atoms, water_sel, ethanol_s
     cv = hc.DistanceCV(
         x1=hc.VirtualAtom(ethanol_sel[0], "com"),
         x2=hc.VirtualAtom(water_sel, "com"),  # 3 water COMs
-        prefix="d"
+        prefix="d",
     )
 
     labels, commands = cv.to_plumed(test_atoms)
@@ -64,10 +66,10 @@ def test_distance_with_virtual_atom_one_to_many(test_atoms, water_sel, ethanol_s
 def test_distance_with_virtual_atom_pairwise_all(test_atoms, water_sel, ethanol_sel):
     """Test all pairwise distances (explosion!)."""
     cv = hc.DistanceCV(
-        x1=hc.VirtualAtom(water_sel, "com"),      # 3 waters
-        x2=hc.VirtualAtom(ethanol_sel, "com"),    # 2 ethanols
+        x1=hc.VirtualAtom(water_sel, "com"),  # 3 waters
+        x2=hc.VirtualAtom(ethanol_sel, "com"),  # 2 ethanols
         prefix="d",
-        pairwise="all"
+        pairwise="all",
     )
 
     labels, commands = cv.to_plumed(test_atoms)
@@ -79,13 +81,15 @@ def test_distance_with_virtual_atom_pairwise_all(test_atoms, water_sel, ethanol_
     assert "d_5" in labels
 
 
-def test_distance_with_virtual_atom_pairwise_diagonal(test_atoms, water_sel, ethanol_sel):
+def test_distance_with_virtual_atom_pairwise_diagonal(
+    test_atoms, water_sel, ethanol_sel
+):
     """Test diagonal pairing (avoid explosion)."""
     cv = hc.DistanceCV(
-        x1=hc.VirtualAtom(water_sel, "com"),      # 3 waters
-        x2=hc.VirtualAtom(ethanol_sel, "com"),    # 2 ethanols
+        x1=hc.VirtualAtom(water_sel, "com"),  # 3 waters
+        x2=hc.VirtualAtom(ethanol_sel, "com"),  # 2 ethanols
         prefix="d",
-        pairwise="diagonal"
+        pairwise="diagonal",
     )
 
     labels, commands = cv.to_plumed(test_atoms)
@@ -95,13 +99,15 @@ def test_distance_with_virtual_atom_pairwise_diagonal(test_atoms, water_sel, eth
     assert labels == ["d_0", "d_1"]
 
 
-def test_distance_with_virtual_atom_pairwise_none_error(test_atoms, water_sel, ethanol_sel):
+def test_distance_with_virtual_atom_pairwise_none_error(
+    test_atoms, water_sel, ethanol_sel
+):
     """Test that pairwise='none' raises error for many-to-many."""
     cv = hc.DistanceCV(
-        x1=hc.VirtualAtom(water_sel, "com"),      # 3 waters
-        x2=hc.VirtualAtom(ethanol_sel, "com"),    # 2 ethanols
+        x1=hc.VirtualAtom(water_sel, "com"),  # 3 waters
+        x2=hc.VirtualAtom(ethanol_sel, "com"),  # 2 ethanols
         prefix="d",
-        pairwise="none"
+        pairwise="none",
     )
 
     with pytest.raises(ValueError, match="Both x1 and x2 have multiple groups"):
@@ -110,12 +116,7 @@ def test_distance_with_virtual_atom_pairwise_none_error(test_atoms, water_sel, e
 
 def test_distance_selector_flatten_true(test_atoms, water_sel, ethanol_sel):
     """Test AtomSelector with flatten=True (default)."""
-    cv = hc.DistanceCV(
-        x1=water_sel[0],
-        x2=ethanol_sel[0],
-        prefix="d",
-        flatten=True
-    )
+    cv = hc.DistanceCV(x1=water_sel[0], x2=ethanol_sel[0], prefix="d", flatten=True)
 
     labels, commands = cv.to_plumed(test_atoms)
 
@@ -130,12 +131,7 @@ def test_distance_selector_flatten_true(test_atoms, water_sel, ethanol_sel):
 
 def test_distance_selector_flatten_false(test_atoms, water_sel, ethanol_sel):
     """Test AtomSelector with flatten=False (create GROUPs)."""
-    cv = hc.DistanceCV(
-        x1=water_sel[0],
-        x2=ethanol_sel[0],
-        prefix="d",
-        flatten=False
-    )
+    cv = hc.DistanceCV(x1=water_sel[0], x2=ethanol_sel[0], prefix="d", flatten=False)
 
     labels, commands = cv.to_plumed(test_atoms)
 
@@ -155,7 +151,7 @@ def test_distance_mixed_virtual_atom_and_selector(test_atoms, water_sel, ethanol
         x1=hc.VirtualAtom(water_sel[0], "com"),
         x2=ethanol_sel[0],  # Raw selector (will be flattened)
         prefix="d",
-        flatten=True
+        flatten=True,
     )
 
     labels, commands = cv.to_plumed(test_atoms)
@@ -180,8 +176,8 @@ def test_distance_combined_virtual_atoms(test_atoms):
 
     cv = hc.DistanceCV(
         x1=hc.VirtualAtom(sel1[0], "com"),  # 1 COM
-        x2=combined,                         # 3 COMs
-        prefix="d"
+        x2=combined,  # 3 COMs
+        prefix="d",
     )
 
     labels, commands = cv.to_plumed(test_atoms)
@@ -199,11 +195,7 @@ def test_distance_nested_virtual_atoms(test_atoms):
     # Create COM of those COMs
     center = hc.VirtualAtom(coms, "com")
 
-    cv = hc.DistanceCV(
-        x1=hc.VirtualAtom(sel[0], "com"),
-        x2=center,
-        prefix="d"
-    )
+    cv = hc.DistanceCV(x1=hc.VirtualAtom(sel[0], "com"), x2=center, prefix="d")
 
     labels, commands = cv.to_plumed(test_atoms)
 
@@ -222,7 +214,7 @@ def test_distance_selector_indexing(test_atoms):
     cv = hc.DistanceCV(
         x1=sel[0][0],  # First atom of first group
         x2=sel[1][0],  # First atom of second group
-        prefix="d"
+        prefix="d",
     )
 
     labels, commands = cv.to_plumed(test_atoms)
@@ -240,7 +232,7 @@ def test_distance_cog_virtual_atoms(test_atoms, water_sel):
     cv = hc.DistanceCV(
         x1=hc.VirtualAtom(water_sel[0], "cog"),
         x2=hc.VirtualAtom(water_sel[1], "cog"),
-        prefix="d"
+        prefix="d",
     )
 
     labels, commands = cv.to_plumed(test_atoms)

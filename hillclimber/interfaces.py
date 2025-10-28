@@ -127,6 +127,7 @@ __all__ = [
     "MetadynamicsBias",
 ]
 
+
 def interfaces() -> dict[str, list[str]]:
     """Return a dictionary of available interfaces."""
     return {"plumed-nodes": __all__}
