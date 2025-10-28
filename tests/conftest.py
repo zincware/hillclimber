@@ -1,6 +1,7 @@
 import pytest
 import rdkit2ase
 
+
 @pytest.fixture(scope="session")
 def packmol() -> str:
     """Path to packmol executable."""
@@ -27,9 +28,7 @@ def ethanol_water(packmol):
 def small_ethanol_water(packmol):
     ethanol = rdkit2ase.smiles2conformers("CCO", numConfs=1)
     water = rdkit2ase.smiles2conformers("O", numConfs=1)
-    box = rdkit2ase.pack(
-        [ethanol, water], counts=[2, 2], density=700, packmol=packmol
-    )
+    box = rdkit2ase.pack([ethanol, water], counts=[2, 2], density=700, packmol=packmol)
     return box.copy()
 
 
