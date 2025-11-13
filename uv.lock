@@ -1023,7 +1023,7 @@ wheels = [
 
 [[package]]
 name = "hillclimber"
-version = "0.1.0a3"
+version = "0.1.0a5"
 source = { editable = "." }
 dependencies = [
     { name = "ase" },

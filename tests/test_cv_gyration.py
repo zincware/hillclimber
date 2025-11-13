@@ -1,5 +1,3 @@
-import ase
-import pytest
 
 import hillclimber as pn
 
