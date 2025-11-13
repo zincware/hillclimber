@@ -150,7 +150,6 @@ class MetaDynamicsModel(zntrack.Node, NodeWithCalculator):
     actions: list[PlumedGenerator] = zntrack.deps(default_factory=list)
     timestep: float = zntrack.params(1.0)  # in fs, default is 1 fs
     model: NodeWithCalculator = zntrack.deps()
-    wrap: bool = zntrack.params(True)
 
     figures: Path = zntrack.outs_path(zntrack.nwd / "figures", independent=True)
 
@@ -186,7 +185,6 @@ class MetaDynamicsModel(zntrack.Node, NodeWithCalculator):
             timestep=float(self.timestep * ase.units.fs),
             kT=float(kT),
             log=(directory / "plumed.log").as_posix(),
-            wrap=self.wrap,
         )
 
     def to_plumed(self, atoms: ase.Atoms) -> list[str]:
