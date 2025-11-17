@@ -2,6 +2,7 @@ import dataclasses
 import typing as tp
 
 import ase
+import molify
 import rdkit2ase
 
 from hillclimber.interfaces import AtomSelector
@@ -163,6 +164,7 @@ class SMILESSelector(AtomSelector):
         return _CombinedSelector([self, other])
 
     def select(self, atoms: ase.Atoms) -> list[list[int]]:
+        # TODO: switch to molify once available
         matches = rdkit2ase.match_substructure(atoms, smiles=self.smiles)
         return [list(match) for match in matches]
 
@@ -222,6 +224,7 @@ class SMARTSSelector(AtomSelector):
         return _CombinedSelector([self, other])
 
     def select(self, atoms: ase.Atoms) -> list[list[int]]:
+        # TODO: switch to molify once available
         return rdkit2ase.select_atoms_grouped(
-            rdkit2ase.ase2rdkit(atoms), self.pattern, self.hydrogens
+            molify.ase2rdkit(atoms), self.pattern, self.hydrogens
         )

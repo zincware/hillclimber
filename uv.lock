@@ -1022,18 +1022,39 @@ wheels = [
 ]
 
 [[package]]
+name = "hatchling"
+version = "1.27.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "packaging" },
+    { name = "pathspec" },
+    { name = "pluggy" },
+    { name = "trove-classifiers" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/8f/8a/cc1debe3514da292094f1c3a700e4ca25442489731ef7c0814358816bb03/hatchling-1.27.0.tar.gz", hash = "sha256:971c296d9819abb3811112fc52c7a9751c8d381898f36533bb16f9791e941fd6", size = 54983, upload-time = "2024-12-15T17:08:11.894Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/08/e7/ae38d7a6dfba0533684e0b2136817d667588ae3ec984c1a4e5df5eb88482/hatchling-1.27.0-py3-none-any.whl", hash = "sha256:d3a2f3567c4f926ea39849cdf924c7e99e6686c9c8e288ae1037c8fa2a5d937b", size = 75794, upload-time = "2024-12-15T17:08:10.364Z" },
+]
+
+[[package]]
 name = "hillclimber"
 version = "0.1.0a5"
 source = { editable = "." }
 dependencies = [
     { name = "ase" },
-    { name = "plumed" },
+    { name = "molify" },
     { name = "rdkit2ase" },
     { name = "zntrack" },
 ]
 
+[package.optional-dependencies]
+system-plumed = [
+    { name = "plumed" },
+]
+
 [package.dev-dependencies]
 dev = [
+    { name = "hatchling" },
     { name = "ipykernel" },
     { name = "pytest" },
 ]
@@ -1041,13 +1062,16 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "ase", specifier = ">=3.25.0" },
-    { name = "plumed", specifier = ">=2.9.0" },
+    { name = "molify", specifier = ">=0.2.0" },
+    { name = "plumed", marker = "extra == 'system-plumed'", specifier = ">=2.9.0" },
     { name = "rdkit2ase", specifier = ">=0.1.13" },
     { name = "zntrack", specifier = ">=0.8.9" },
 ]
+provides-extras = ["system-plumed"]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "hatchling", specifier = ">=1.27.0" },
     { name = "ipykernel", specifier = ">=6.30.1" },
     { name = "pytest", specifier = ">=8.4.1" },
 ]
@@ -1375,6 +1399,65 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/d6/54/cfe61301667036ec958cb99bd3efefba235e65cdeb9c84d24a8293ba1d90/mdurl-0.1.2.tar.gz", hash = "sha256:bb413d29f5eea38f31dd4754dd7377d4465116fb207585f97bf925588687c1ba", size = 8729, upload-time = "2022-08-14T12:40:10.846Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b3/38/89ba8ad64ae25be8de66a6d463314cf1eb366222074cfda9ee839c56a4b4/mdurl-0.1.2-py3-none-any.whl", hash = "sha256:84008a41e51615a49fc9966191ff91509e3c40b939176e643fd50a5c2196b8f8", size = 9979, upload-time = "2022-08-14T12:40:09.779Z" },
+]
+
+[[package]]
+name = "molify"
+version = "0.2.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "ase" },
+    { name = "matplotlib" },
+    { name = "networkx" },
+    { name = "rdkit" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/5f/a1/15f23de1207bc6fc7608b04b5b8af2468af27bd24ad239681466eab5372c/molify-0.2.0.tar.gz", hash = "sha256:9eb324a10fc70285ef9b2ff79819a389fff41e31d88d21d79b9ea88e8646a1ad", size = 1560372, upload-time = "2025-11-17T07:45:37.744Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/de/0c/af69f4245826b947a1346e8c98e165cfd4b9ff05c4a714c6c6ba4c02704a/molify-0.2.0-cp311-cp311-macosx_15_0_arm64.whl", hash = "sha256:74c5999d6d21b7f931970225d05ad5f301e211872d862bf8565556b3431fbafa", size = 1017458, upload-time = "2025-11-17T07:44:30.261Z" },
+    { url = "https://files.pythonhosted.org/packages/3b/0a/30aa78092947e483040f87d28fb5f67f069e277ea0daf19f818e059c4eda/molify-0.2.0-cp311-cp311-macosx_15_0_x86_64.whl", hash = "sha256:57f8852cb8a750853d3601f3438e8b9ed0e480ab26ece2c448f52d071a4fe9a6", size = 1708448, upload-time = "2025-11-17T07:44:32.143Z" },
+    { url = "https://files.pythonhosted.org/packages/9a/61/13f1a42a4375ed7946b2d8522a9b03afd998d3ba348560908c223898c0ee/molify-0.2.0-cp311-cp311-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:2c727b8dfb4c976cfc93e2397b8341a34e64b3295f4193c5a18b6588e33d1648", size = 676917, upload-time = "2025-11-17T07:44:33.914Z" },
+    { url = "https://files.pythonhosted.org/packages/af/a6/5c907f807ae8ec3e18acd9fc3cd03252431d1306ba7de93615e338b76867/molify-0.2.0-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:c8989d8559df70fbd8569bb19afe56caa0a3b12e419ab038dfa9a9a98df9655a", size = 1245775, upload-time = "2025-11-17T07:44:35.207Z" },
+    { url = "https://files.pythonhosted.org/packages/94/c3/33319767aa71a7800d9cfdbd12f221b56971f53029bb7e54d163fa398907/molify-0.2.0-cp311-cp311-musllinux_1_2_aarch64.whl", hash = "sha256:0f55d1df0b43d161fdf16ec56c2bba86adf0fb0191bd571b286cd74779871efb", size = 827345, upload-time = "2025-11-17T07:44:36.52Z" },
+    { url = "https://files.pythonhosted.org/packages/e1/8f/726df1fcb00c8b1e0fa948db0e65968fc6f239d8edd59b243870a1fb6ed6/molify-0.2.0-cp311-cp311-musllinux_1_2_x86_64.whl", hash = "sha256:efed3f15ee3f60409bef1057790c96dbef51bf809b6bfb166b581243942118a5", size = 1652018, upload-time = "2025-11-17T07:44:38.275Z" },
+    { url = "https://files.pythonhosted.org/packages/47/fa/0ca660c2906078d2a8022819f6e7b80b943e8e8ab3b195298ab5f2adc365/molify-0.2.0-cp311-cp311-win32.whl", hash = "sha256:8f3e05d0de3630adcc652ce391d68c1dc789944c00a7b42563ab3dec057b853e", size = 245429, upload-time = "2025-11-17T07:44:39.842Z" },
+    { url = "https://files.pythonhosted.org/packages/ca/98/1eaec493b38bf2082f6901624e92f0ee251d92aad342a9cb4a2f31d61ae6/molify-0.2.0-cp311-cp311-win_amd64.whl", hash = "sha256:39021414501d84b5fb0a6fc5edbe7a781134dfd0819e50e38400af1cb74f8e43", size = 245433, upload-time = "2025-11-17T07:44:41.479Z" },
+    { url = "https://files.pythonhosted.org/packages/36/c7/0158d5834bf2e5c812e5093b82cfdcc03e77c0f927fed1c776cab63a5f62/molify-0.2.0-cp311-cp311-win_arm64.whl", hash = "sha256:2e8e9ec3e9cd43f133945191200b3ff714db41a4643962e6d8a95ff3c2890add", size = 236342, upload-time = "2025-11-17T07:44:42.963Z" },
+    { url = "https://files.pythonhosted.org/packages/e9/bf/8a09a89553e6c61a039d8aaa038d23ba0c1f7c75170ec3c530ebc1b2adf8/molify-0.2.0-cp312-cp312-macosx_15_0_arm64.whl", hash = "sha256:eb74275945def703e977c2c8b3493746ae451abe7ec1b7417452d83e7599c591", size = 1017458, upload-time = "2025-11-17T07:44:44.206Z" },
+    { url = "https://files.pythonhosted.org/packages/6f/60/3d3244ec3875a2c6555af5c17dc76a8d5a55e1e5f60910ff4a3f8b17b262/molify-0.2.0-cp312-cp312-macosx_15_0_x86_64.whl", hash = "sha256:70a377ecca7a8a9adbf2da78080bf8e5089c170843f6ac16fad993349ce10221", size = 1708449, upload-time = "2025-11-17T07:44:45.593Z" },
+    { url = "https://files.pythonhosted.org/packages/63/c3/8fd28049abf31ada85387cbce4c55f4d365c12f922cd0f071389bb6696d7/molify-0.2.0-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:f67ac571fd815709bcf379f829a011b1bfe60d19b7dcab52ebf76e73bb478bdf", size = 676918, upload-time = "2025-11-17T07:44:47.463Z" },
+    { url = "https://files.pythonhosted.org/packages/39/5d/58c3fad0271e76e20c2c18b42c947abadcd97d0bbf15a0e49f8bd6cb5e2a/molify-0.2.0-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:62daa4eecc6960d1778e72f2ac81c94329afef2584a77bd40f2c426e2381ea3b", size = 1245776, upload-time = "2025-11-17T07:44:48.818Z" },
+    { url = "https://files.pythonhosted.org/packages/b5/07/4714dda6d33499134281e73770a08c732a3db1527d4c54724bbd6ab8a03b/molify-0.2.0-cp312-cp312-musllinux_1_2_aarch64.whl", hash = "sha256:9d1f19faf69f44a01e3ba52d20e9db16badc2860bf4df729b9033a075472893a", size = 827345, upload-time = "2025-11-17T07:44:50.636Z" },
+    { url = "https://files.pythonhosted.org/packages/73/ef/21690eddaad558338995233d3c03a1c41e1f347e5956e36daa7e5240e6ed/molify-0.2.0-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:e23bb0ca8a4f0e5132f322593582355689e7aeeab35e02b52c924b0492232ab4", size = 1652018, upload-time = "2025-11-17T07:44:51.956Z" },
+    { url = "https://files.pythonhosted.org/packages/13/47/bed37a11e69975183a22e3698ee5182966f971e46269890cafe0e8066877/molify-0.2.0-cp312-cp312-win32.whl", hash = "sha256:e9af40322c437156273db7b9d75bfe4955dfb5fdc385d1ad1adf5d1092fc9400", size = 245428, upload-time = "2025-11-17T07:44:53.245Z" },
+    { url = "https://files.pythonhosted.org/packages/04/aa/dba5d8c3ba8571fa5209c2b4a15310a211e7a8265a90d7defd9f742b0e92/molify-0.2.0-cp312-cp312-win_amd64.whl", hash = "sha256:8968a2217145a4f0903b782b0d13fe772c8fe45cca17db5c386633059bca8198", size = 245435, upload-time = "2025-11-17T07:44:54.369Z" },
+    { url = "https://files.pythonhosted.org/packages/44/d2/8741034961722d70ef12164f9240ce86b9b616d168f743a7b737a8ff9fc9/molify-0.2.0-cp312-cp312-win_arm64.whl", hash = "sha256:eab5e9a6b167c8a72163498a8243278d65ed57f93bebb95f24b839e218347a31", size = 236341, upload-time = "2025-11-17T07:44:55.694Z" },
+    { url = "https://files.pythonhosted.org/packages/1e/a5/089c040033f673ec874bea542c8c53b689ff79fefff088bf2c4d5c0f44a0/molify-0.2.0-cp313-cp313-macosx_15_0_arm64.whl", hash = "sha256:1fd328b62be4da28575f30fe54965f14df81bb94b530e95aa9dbfd24e9b6c781", size = 1017458, upload-time = "2025-11-17T07:44:56.986Z" },
+    { url = "https://files.pythonhosted.org/packages/81/62/7d14328bfb98ec8c7aef80d18d6a0d44a1529cdd265ceee6c385a22f0e14/molify-0.2.0-cp313-cp313-macosx_15_0_x86_64.whl", hash = "sha256:823a0a457148018c63cc075503409ab5f7dd5d8e5710e93c5946453107764d57", size = 1708447, upload-time = "2025-11-17T07:44:58.436Z" },
+    { url = "https://files.pythonhosted.org/packages/21/ab/58953f541ad07bbda4d30baf026eb80e37b22d84020213d38d154624a495/molify-0.2.0-cp313-cp313-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:025d94d737482db56f71d69a4ff88622c4f436b65df33bf272bbfce9791ad883", size = 676917, upload-time = "2025-11-17T07:45:00.57Z" },
+    { url = "https://files.pythonhosted.org/packages/d7/0f/fdf409d8de2e4a08a94406701d5280fdb5c89a346ce668fef8fa156bc97d/molify-0.2.0-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:745645916b67a9a1c3de8656adba2e432752e64b5d22d9c8ace3e7b932dba3c8", size = 1245775, upload-time = "2025-11-17T07:45:01.854Z" },
+    { url = "https://files.pythonhosted.org/packages/48/0c/2bfb4f7baf764f1a71bce2e7b8087ed93445e8708dc2a977f973ac606346/molify-0.2.0-cp313-cp313-musllinux_1_2_aarch64.whl", hash = "sha256:0085b1cbab621ee9e19029d97f2c7e21296e5d5d00225e67ec05579e75119c3b", size = 827342, upload-time = "2025-11-17T07:45:03.536Z" },
+    { url = "https://files.pythonhosted.org/packages/92/b3/912eb3bb4e6ed9f38b74f1d59abf421503af39871b7d92438706e2dcf70f/molify-0.2.0-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:59af2327b82930c642a49ffcec6274e3a654f41ad02b9ca5206f4b05086420a6", size = 1652019, upload-time = "2025-11-17T07:45:05.277Z" },
+    { url = "https://files.pythonhosted.org/packages/02/48/24bd52c16f7da4277cb283fd75b371b5744e3b1e7e7e183e5d6926eb9a1d/molify-0.2.0-cp313-cp313-win32.whl", hash = "sha256:3d008b5b5db1cbf323a5dd487b97a9fb104d8251acec244c43954d36c1587f3b", size = 245430, upload-time = "2025-11-17T07:45:06.586Z" },
+    { url = "https://files.pythonhosted.org/packages/37/45/b96218c9ebf7d777438cc70495f7c4a083e9ca33d9446eaf7a885c1aa271/molify-0.2.0-cp313-cp313-win_amd64.whl", hash = "sha256:8ba0c88a2a68959870376b21f3c2f0e93aadc1e109c0ed0d1ef80db79cd459b5", size = 245435, upload-time = "2025-11-17T07:45:07.869Z" },
+    { url = "https://files.pythonhosted.org/packages/67/90/aed89ef8e2e1e90418dad824ac9e9071ad94d4062250794a9c25bba38af5/molify-0.2.0-cp313-cp313-win_arm64.whl", hash = "sha256:71ef01eae1315aa80f12cb4808bc2a934edcb1379c8b51c4f1b83b17b8449f5d", size = 236340, upload-time = "2025-11-17T07:45:09.139Z" },
+    { url = "https://files.pythonhosted.org/packages/0c/82/376da32be721d80e42cb056ee6f8dbc73100a65f1b820a07bfac9852ef81/molify-0.2.0-cp314-cp314-macosx_15_0_arm64.whl", hash = "sha256:3ae2c5844277e45109fda1506c0b8a00b27c8aea09d1ab9e1023fbcae6c9cb56", size = 1017458, upload-time = "2025-11-17T07:45:10.426Z" },
+    { url = "https://files.pythonhosted.org/packages/11/f8/06bb2a593fdde5d71570077f8b3ffe6806c4ae2155ba92479561934d1c7d/molify-0.2.0-cp314-cp314-macosx_15_0_x86_64.whl", hash = "sha256:9aba831ce9e57ad8e05961dde74a1e8e313220529e95c18af8a69bfcb789de4f", size = 1708448, upload-time = "2025-11-17T07:45:11.822Z" },
+    { url = "https://files.pythonhosted.org/packages/a1/fc/8af7dcfe7b42904eaa604ac3f98e930bca1703a8cfb4d4224ac39c3f229d/molify-0.2.0-cp314-cp314-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:b86d3c77240785dd9e9826863e23215e404d84dfbfa0a6403c1a4e42ba7312cb", size = 676917, upload-time = "2025-11-17T07:45:13.179Z" },
+    { url = "https://files.pythonhosted.org/packages/1f/50/7c27eb1b6d46077667628a146f9a974f61d1d9983ac16b3d9f34333fd553/molify-0.2.0-cp314-cp314-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:5734ed39ae0ac41128a7b2d95f57f50602b4bfaa44581e3291308722dae675bd", size = 1245775, upload-time = "2025-11-17T07:45:14.557Z" },
+    { url = "https://files.pythonhosted.org/packages/0b/fa/83f55c00cadcf584a95c6ae4c471fe1086fdf8f2d04ff1fb58e289212866/molify-0.2.0-cp314-cp314-musllinux_1_2_aarch64.whl", hash = "sha256:50711bb62a8396b6cff4716063eada894f8fb927dec8773081ef33cac487046e", size = 827345, upload-time = "2025-11-17T07:45:15.9Z" },
+    { url = "https://files.pythonhosted.org/packages/b6/30/9f79e724cd9a3df80486c97f35538c8a5049fce232380605004c407aa25f/molify-0.2.0-cp314-cp314-musllinux_1_2_x86_64.whl", hash = "sha256:43ea467ad98ee625afcd072eb6bd7aad8d24a346407dad26b321a50ba0b9fb94", size = 1652018, upload-time = "2025-11-17T07:45:17.655Z" },
+    { url = "https://files.pythonhosted.org/packages/7d/fd/c94ba1d36df99c15b5b0e18138af211ca599c01f92521504756d2c7877d3/molify-0.2.0-cp314-cp314-win32.whl", hash = "sha256:c04b90a139ac2b2dc458ceecade4e141439cf773d08ff8f16dd9678bb30390e5", size = 251266, upload-time = "2025-11-17T07:45:19.592Z" },
+    { url = "https://files.pythonhosted.org/packages/f4/2a/5acbf4776e072580bbaa5157087e8bf1d1fd12df040ac315ea8885bb5b6d/molify-0.2.0-cp314-cp314-win_amd64.whl", hash = "sha256:c9a3f7fb1851f74ee554b320eed2c09c2950a76681f99a2ccb3319abb193a52d", size = 251267, upload-time = "2025-11-17T07:45:20.793Z" },
+    { url = "https://files.pythonhosted.org/packages/ff/12/c257d35011dd0e61ed2a07816407a12a3115ddc2a9bdfcc8baeb4bd1612b/molify-0.2.0-cp314-cp314-win_arm64.whl", hash = "sha256:16e2b931829db18f75197500795b59e56009d51e19232bff45f58d5cbcde96cd", size = 241611, upload-time = "2025-11-17T07:45:22.057Z" },
+    { url = "https://files.pythonhosted.org/packages/67/51/a023b6b3ba71c383e056277b6e58ace9f840f2261f7ad6b371ed33882a9f/molify-0.2.0-cp314-cp314t-macosx_15_0_arm64.whl", hash = "sha256:cb34255a1134eb1175ceb8514240c7627bfa55ebb49db4bc09e0bc1cefd80040", size = 1017458, upload-time = "2025-11-17T07:45:23.308Z" },
+    { url = "https://files.pythonhosted.org/packages/6f/c5/d51cb62bb4ed26cbc2b7ceff1fd5c5b1e77c6eaee0d344134ae1fea3085b/molify-0.2.0-cp314-cp314t-macosx_15_0_x86_64.whl", hash = "sha256:411de785b53d8f859c67ca97c875354e11cba43f3d4a7edb0bd47f8f52c43e04", size = 1708446, upload-time = "2025-11-17T07:45:25.094Z" },
+    { url = "https://files.pythonhosted.org/packages/64/fc/45441db2087d46695de4e4fad5a127d29e6c06c984719af3157e121cc069/molify-0.2.0-cp314-cp314t-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:9d210dc504f48bbf8cf026c0887d2a264eeb4659f54a65ac604efd61ca518024", size = 676924, upload-time = "2025-11-17T07:45:26.475Z" },
+    { url = "https://files.pythonhosted.org/packages/01/4e/eacbe514c2745cce1471340f8ababc57c76673d756f7e4d1584bf6bbbb6b/molify-0.2.0-cp314-cp314t-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:374a04367ab4a72c091dc36e96e27bde64ba2f87f40672e4a9835dbc1830b71c", size = 1245777, upload-time = "2025-11-17T07:45:28.151Z" },
+    { url = "https://files.pythonhosted.org/packages/9f/84/561eb8b19a0fd7e0cf79e37f2582b94b2108c55383fc2e6576c4024bef31/molify-0.2.0-cp314-cp314t-musllinux_1_2_aarch64.whl", hash = "sha256:9eb9fe23109433cc2accea9b2afb856d0f9ed082a5930f9f32ded7ed7a8a2067", size = 827350, upload-time = "2025-11-17T07:45:29.449Z" },
+    { url = "https://files.pythonhosted.org/packages/1b/da/d1db46a99e932264620e938739daad8bf843a92f069eb9bd6430a926e398/molify-0.2.0-cp314-cp314t-musllinux_1_2_x86_64.whl", hash = "sha256:7702c354e50dbc0f7bbef4361cd05b59e5ad477550bf14c0f6d8df6a05d20de7", size = 1652024, upload-time = "2025-11-17T07:45:30.765Z" },
+    { url = "https://files.pythonhosted.org/packages/4c/a4/a69cbd0d3a58e01dae24798e90f5448ebb59d21bf1185c56099d0cd3703b/molify-0.2.0-cp314-cp314t-win32.whl", hash = "sha256:87731e5a7f7477434e935ad85a5822206bed96345909cccc57dd6c696cdc3185", size = 251266, upload-time = "2025-11-17T07:45:32.46Z" },
+    { url = "https://files.pythonhosted.org/packages/87/b6/acdf56f82152dc8907a574b2570d4248b60f2410b629cc74d63aecb2b8fb/molify-0.2.0-cp314-cp314t-win_amd64.whl", hash = "sha256:a8251bd5ec519264324156e1f4eef7a12bc35b5efa68bfa6fd382d48f448c855", size = 251268, upload-time = "2025-11-17T07:45:33.612Z" },
+    { url = "https://files.pythonhosted.org/packages/7a/d0/6d7ba254833f088463dce7b861ebba8ff2c2667e249176dd8134026ac25d/molify-0.2.0-cp314-cp314t-win_arm64.whl", hash = "sha256:06f3be93ed62fd84a44ef255d7dde31f5d54daffd9f0e2d9d473697104af75c4", size = 241611, upload-time = "2025-11-17T07:45:36.019Z" },
 ]
 
 [[package]]
@@ -2605,6 +2688,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/eb/79/72064e6a701c2183016abbbfedaba506d81e30e232a68c9f0d6f6fcd1574/traitlets-5.14.3.tar.gz", hash = "sha256:9ed0579d3502c94b4b3732ac120375cda96f923114522847de4b3bb98b96b6b7", size = 161621, upload-time = "2024-04-19T11:11:49.746Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/00/c0/8f5d070730d7836adc9c9b6408dec68c6ced86b304a9b26a14df072a6e8c/traitlets-5.14.3-py3-none-any.whl", hash = "sha256:b74e89e397b1ed28cc831db7aea759ba6640cb3de13090ca145426688ff1ac4f", size = 85359, upload-time = "2024-04-19T11:11:46.763Z" },
+]
+
+[[package]]
+name = "trove-classifiers"
+version = "2025.11.14.15"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/bf/a9/880cccf76af9e7b322112f52e4e2dbb3534cbe671197b8f443a42189dfc7/trove_classifiers-2025.11.14.15.tar.gz", hash = "sha256:6b60f49d40bbd895bc61d8dc414fc2f2286d70eb72ed23548db8cf94f62804ca", size = 16995, upload-time = "2025-11-14T15:23:13.78Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/49/f6/73c4aa003d1237ee9bea8a46f49dc38c45dfe95af4f0da7e60678d388011/trove_classifiers-2025.11.14.15-py3-none-any.whl", hash = "sha256:d1dac259c1e908939862e3331177931c6df0a37af2c1a8debcc603d9115fcdd9", size = 14191, upload-time = "2025-11-14T15:23:12.467Z" },
 ]
 
 [[package]]

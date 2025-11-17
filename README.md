@@ -7,32 +7,35 @@
 
 ## Installation
 
-### Prerequisites
+### Standard Installation (Bundled PLUMED)
 
-For `uv add plumed`, you might need
-```bash
-export CC=gcc
-export CXX=g++
-```
-
-You'll also need to configure PLUMED per project. Create an `env.yaml` file:
-
-```yaml
-global:
-  PLUMED_KERNEL: /path/to/plumed2/lib/libplumedKernel.so
-```
-
-### Install hillclimber
-
-```bash
-uv add hillclimber
-```
-
-Or with pip:
+Starting from version 0.1.0a6, hillclimber bundles the PLUMED library directly in the wheel:
 
 ```bash
 pip install hillclimber
 ```
+
+**That's it!** No separate PLUMED installation or environment variables needed.
+
+### What's Included
+
+The wheel bundles:
+- ✅ PLUMED library (`libplumedKernel`)
+- ✅ PLUMED executable (for `sum_hills` and other tools)
+- ✅ Automatic library loading
+
+Everything works out of the box - no additional installation needed!
+
+### Advanced: Using System PLUMED
+
+If you prefer to use a system-installed PLUMED:
+
+```bash
+pip install hillclimber[system-plumed]
+export PLUMED_KERNEL=/path/to/libplumedKernel.so
+```
+
+See [BUILDING.md](BUILDING.md) for more details on building from source and customization options.
 
 ## Units
 

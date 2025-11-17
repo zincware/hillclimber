@@ -6,18 +6,29 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "ase>=3.25.0",
-    "plumed>=2.9.0",
+    # Note: PLUMED library is now bundled with the wheel
+    # The 'plumed' Python package is only needed if using system PLUMED
+    "molify>=0.2.0",
     "rdkit2ase>=0.1.13",
     "zntrack>=0.8.9",
 ]
 
+[project.optional-dependencies]
+# For users who want to use system-installed PLUMED instead of bundled version
+system-plumed = ["plumed>=2.9.0"]
+
 
 [build-system]
-requires = ["hatchling"]
+requires = [
+    "hatchling",
+    "Cython>=3.0",
+    "setuptools>=65.0",  # For compiling Cython extensions
+]
 build-backend = "hatchling.build"
 
 [dependency-groups]
 dev = [
+    "hatchling>=1.27.0",
     "ipykernel>=6.30.1",
     "pytest>=8.4.1",
 ]
@@ -27,3 +38,32 @@ hillclimber = 'hillclimber.nodes:nodes'
 
 [project.entry-points.'zntrack.interfaces']
 hillclimber = 'hillclimber.interfaces:interfaces'
+
+# Hatchling build configuration
+[tool.hatch.build.targets.wheel]
+packages = ["hillclimber"]
+# plumed package is added via force_include in build hook
+# to avoid duplicate file warnings
+
+# Custom build hook to compile and bundle PLUMED
+[tool.hatch.build.targets.wheel.hooks.custom]
+path = "hatch_build_plumed.py"
+
+[tool.hatch.build.targets.sdist]
+# Don't include build artifacts in source distribution
+exclude = [
+    "build/",
+    "hillclimber/_plumed_lib/*.so*",
+    "hillclimber/_plumed_lib/*.dylib",
+]
+
+# cibuildwheel configuration
+[tool.cibuildwheel]
+build-frontend = "build[uv]"
+skip = ["pp*", "*-musllinux_*", "*-win32", "*-manylinux_i686"]
+
+[tool.cibuildwheel.linux]
+before-all = "yum install -y gcc-gfortran lapack-devel blas-devel xxd || apt-get update && apt-get install -y gfortran liblapack-dev libblas-dev xxd"
+
+[tool.cibuildwheel.macos]
+before-all = "brew install gcc openblas lapack xxd || true"

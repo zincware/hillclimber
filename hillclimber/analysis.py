@@ -236,13 +236,28 @@ def sum_hills(
     env = os.environ.copy()
 
     if plumed_bin_path is None:
-        # Try to find plumed in system PATH
-        plumed_exec = shutil.which("plumed")
-        if plumed_exec is None:
-            raise FileNotFoundError(
-                "PLUMED executable not found in system PATH. "
-                "Please install PLUMED or specify the installation path with plumed_bin_path="
-            )
+        # First, try to use bundled PLUMED from the plumed package
+        try:
+            from plumed import BUNDLED_PLUMED_BIN
+
+            if BUNDLED_PLUMED_BIN is not None and BUNDLED_PLUMED_BIN.exists():
+                plumed_exec = str(BUNDLED_PLUMED_BIN)
+            else:
+                # Fall back to system PATH
+                plumed_exec = shutil.which("plumed")
+                if plumed_exec is None:
+                    raise FileNotFoundError(
+                        "PLUMED executable not found in bundled package or system PATH. "
+                        "Please install PLUMED or specify the installation path with plumed_bin_path="
+                    )
+        except ImportError:
+            # plumed package not available, try system PATH
+            plumed_exec = shutil.which("plumed")
+            if plumed_exec is None:
+                raise FileNotFoundError(
+                    "PLUMED executable not found in system PATH. "
+                    "Please install PLUMED or specify the installation path with plumed_bin_path="
+                )
     else:
         # Use provided PLUMED installation path
         plumed_bin_path = Path(plumed_bin_path)

@@ -16,6 +16,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: true
       - uses: julia-actions/setup-julia@v2
 
       - name: Install uv and set the python version
@@ -26,9 +28,6 @@ jobs:
       - name: Install package
         run: |
           uv sync --all-extras --all-groups
-      - name: Install packmol.jl
-        run: |
-          julia -e 'import Pkg; Pkg.add("Packmol")'
 
       - name: Pytest
         run: |

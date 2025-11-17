@@ -1,0 +1,116 @@
+name: Build Wheels
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  release:
+    types: [published]
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  build_wheels:
+    name: Build wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # Start with Linux and macOS Intel
+        # macOS ARM (macos-14) can be added after testing
+        os: [ubuntu-latest, macos-13]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive  # Critical: fetch PLUMED submodule
+          fetch-depth: 0  # Get full history for version tags
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install system dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            gfortran \
+            liblapack-dev \
+            libblas-dev \
+            xxd
+
+      - name: Install system dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install gcc openblas lapack xxd
+
+      - name: Install cibuildwheel
+        run: python -m pip install cibuildwheel==2.16.5
+
+      - name: Build wheels
+        run: python -m cibuildwheel --output-dir wheelhouse
+        env:
+          # Build for Python 3.11 and 3.12
+          CIBW_BUILD: "cp311-* cp312-*"
+
+          # Skip 32-bit, musl, and PyPy builds
+          CIBW_SKIP: "*-win32 *-manylinux_i686 *-musllinux_* pp*"
+
+          # Install Cython before building
+          CIBW_BEFORE_BUILD: |
+            pip install Cython>=3.0
+
+          # Test the wheel after building
+          CIBW_TEST_REQUIRES: pytest
+          CIBW_TEST_COMMAND: |
+            python -c "import hillclimber"
+            python -c "from hillclimber._plumed_lib import BUNDLED_KERNEL_PATH; assert BUNDLED_KERNEL_PATH is not None, 'Bundled PLUMED kernel not found'"
+            pytest {project}/tests/test_bundled_plumed.py -v
+
+          # Use build[uv] for faster dependency resolution
+          CIBW_BUILD_FRONTEND: "build[uv]"
+
+          # Platform-specific settings
+          CIBW_ENVIRONMENT_LINUX: "MAKEFLAGS='-j4'"
+          CIBW_ENVIRONMENT_MACOS: "MAKEFLAGS='-j4'"
+
+          # Repair wheels to bundle dependencies
+          CIBW_REPAIR_WHEEL_COMMAND_MACOS: >
+            delocate-wheel --require-archs {delocate_archs} -w {dest_dir} -v {wheel}
+
+          CIBW_REPAIR_WHEEL_COMMAND_LINUX: >
+            auditwheel repair -w {dest_dir} {wheel}
+
+      - name: Upload wheels as artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.os }}
+          path: ./wheelhouse/*.whl
+          retention-days: 7
+
+  # Optional: Upload to PyPI on release
+  upload_pypi:
+    name: Upload to PyPI
+    needs: [build_wheels]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release' && github.event.action == 'published'
+    environment:
+      name: pypi
+      url: https://pypi.org/p/hillclimber
+    permissions:
+      id-token: write  # For trusted publishing
+
+    steps:
+      - name: Download all wheels
+        uses: actions/download-artifact@v4
+        with:
+          pattern: wheels-*
+          path: dist
+          merge-multiple: true
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1

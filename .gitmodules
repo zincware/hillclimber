@@ -1,0 +1,3 @@
+[submodule "external/plumed2"]
+	path = external/plumed2
+	url = https://github.com/plumed/plumed2.git
