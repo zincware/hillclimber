@@ -32,4 +32,4 @@ jobs:
       - name: Pytest
         run: |
           uv run python --version
-          uv run pytest
+          uv run pytest tests/
