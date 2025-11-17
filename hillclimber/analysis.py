@@ -238,10 +238,23 @@ def sum_hills(
     if plumed_bin_path is None:
         # First, try to use bundled PLUMED from the plumed package
         try:
-            from plumed import BUNDLED_PLUMED_BIN
+            from plumed import BUNDLED_PLUMED_BIN, BUNDLED_KERNEL_PATH
 
             if BUNDLED_PLUMED_BIN is not None and BUNDLED_PLUMED_BIN.exists():
                 plumed_exec = str(BUNDLED_PLUMED_BIN)
+
+                # Set up library path for bundled PLUMED
+                # The bundled library is in the same directory as the Python module
+                if BUNDLED_KERNEL_PATH is not None:
+                    lib_dir = BUNDLED_KERNEL_PATH.parent
+
+                    # Set LD_LIBRARY_PATH (Linux) and DYLD_LIBRARY_PATH (macOS)
+                    for env_var in ["LD_LIBRARY_PATH", "DYLD_LIBRARY_PATH"]:
+                        current_path = env.get(env_var, "")
+                        if current_path:
+                            env[env_var] = f"{lib_dir}:{current_path}"
+                        else:
+                            env[env_var] = str(lib_dir)
             else:
                 # Fall back to system PATH
                 plumed_exec = shutil.which("plumed")
