@@ -66,6 +66,10 @@ class PlumedBuildHook(BuildHookInterface):
         # Include plumed package in wheel (maps src/plumed -> plumed in wheel)
         build_data.setdefault("force_include", {})[str(pkg_lib_dir)] = "plumed"
 
+        # Mark wheel as platform-specific (contains compiled code)
+        build_data["pure_python"] = False
+        build_data["infer_tag"] = True
+
         print("=" * 70)
         print("PLUMED Build Hook: Completed successfully")
         print("=" * 70)
@@ -106,7 +110,11 @@ class PlumedBuildHook(BuildHookInterface):
             )
         elif sys.platform.startswith("linux"):
             # Linux: Use $ORIGIN for relative RPATH
-            configure_cmd.extend(["LDFLAGS=-Wl,-rpath,$ORIGIN"])
+            # Disable -Werror to avoid build failures from warnings in PLUMED source
+            configure_cmd.extend([
+                "LDFLAGS=-Wl,-rpath,$ORIGIN",
+                "CXXFLAGS=-Wno-error",
+            ])
 
         print(f"Configure command: {' '.join(configure_cmd)}")
         print(f"Running in: {src_dir}")
