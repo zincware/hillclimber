@@ -1,6 +1,6 @@
 [project]
 name = "hillclimber"
-version = "0.1.5a2"
+version = "0.1.5a3"
 description = "Python interfaces for the plumed library with enhanced sampling."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -52,15 +52,11 @@ packages = ["src/hillclimber"]
 path = "hatch_build_plumed.py"
 
 [tool.hatch.build.targets.sdist]
-# Don't include build artifacts in source distribution
 exclude = [
     "build/",
+    "src/plumed/_lib/",
     "src/plumed/*.so*",
-    "src/plumed/*.dylib",
-    "src/plumed/lib/",
-    "src/plumed/bin/",
-    "src/plumed/include/",
-    # Exclude PLUMED directories not needed for build (based on Makefile)
+    # Exclude PLUMED directories not needed for build
     "external/plumed2/regtest/",
     "external/plumed2/user-doc/",
     "external/plumed2/developer-doc/",
@@ -76,6 +72,4 @@ exclude = [
 ]
 
 [tool.cibuildwheel.linux]
-# We must add the build path to LD_LIBRARY_PATH so auditwheel can find
-# libplumedKernel.so, bundle it, and patch the RPATH correctly.
-repair-wheel-command = "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/project/build/plumed-install/lib && auditwheel repair -w {dest_dir} {wheel}"
+repair-wheel-command = "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/project/src/plumed/_lib/lib && auditwheel repair -w {dest_dir} {wheel}"

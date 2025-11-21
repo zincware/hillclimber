@@ -1,35 +1,22 @@
-"""PLUMED Python bindings with bundled library.
-
-This package provides Python bindings to PLUMED with the PLUMED library
-bundled directly. No separate PLUMED installation is required.
-"""
+"""PLUMED Python bindings with bundled library."""
 
 import os
 import sys
 from pathlib import Path
 
-# Get the bundled library directory
-_lib_dir = Path(__file__).parent
+_pkg_dir = Path(__file__).parent
+_lib_dir = _pkg_dir / "_lib"
 
-# Determine library extension based on platform
+# Find bundled PLUMED kernel library
 if sys.platform == "darwin":
-    _lib_pattern = "libplumedKernel*.dylib"
+    _kernel_path = _lib_dir / "lib" / "libplumedKernel.dylib"
 elif sys.platform.startswith("linux"):
-    _lib_pattern = "libplumedKernel.so*"
+    _kernel_path = _lib_dir / "lib" / "libplumedKernel.so"
 else:
-    _lib_pattern = None
+    _kernel_path = None
 
-# Find the bundled PLUMED kernel library
-_kernel_path = None
-if _lib_pattern:
-    lib_files = list(_lib_dir.glob(_lib_pattern))
-    if lib_files:
-        # Use the first match (should only be one)
-        _kernel_path = lib_files[0]
-
-# Set PLUMED_KERNEL environment variable to point to bundled library
-# This is used by the plumed Python module to locate the library
-if _kernel_path is not None and _kernel_path.exists():
+# Set PLUMED_KERNEL environment variable
+if _kernel_path and _kernel_path.exists():
     os.environ.setdefault("PLUMED_KERNEL", str(_kernel_path))
     BUNDLED_KERNEL_PATH = _kernel_path
 else:
@@ -37,27 +24,15 @@ else:
 
 # Find bundled PLUMED executable
 _plumed_bin = _lib_dir / "bin" / "plumed"
-if _plumed_bin.exists():
-    BUNDLED_PLUMED_BIN = _plumed_bin
-else:
-    BUNDLED_PLUMED_BIN = None
+BUNDLED_PLUMED_BIN = _plumed_bin if _plumed_bin.exists() else None
 
-# Import the compiled extension module and re-export its contents
-# The extension is built as _plumed_core.cpython-*.so in this directory
+# Import Cython bindings
 try:
-    # Import the _plumed_core extension and re-export all its public members
     from . import _plumed_core
-
-    # Re-export all public symbols from the extension
     for name in dir(_plumed_core):
         if not name.startswith("_"):
             globals()[name] = getattr(_plumed_core, name)
-
-    _plumed_extension = _plumed_core
-
 except ImportError as e:
-    # If bindings fail to load, still provide the path information
-    _plumed_extension = None
     import warnings
     warnings.warn(f"PLUMED Python bindings not available: {e}")
 
@@ -72,16 +47,9 @@ def cli() -> None:
         print("Error: Bundled PLUMED executable not found.", file=sys.stderr)
         sys.exit(1)
 
-    # Set up environment with library path for the executable
     env = os.environ.copy()
-    lib_dir = _lib_dir / "lib"
-    if lib_dir.exists():
-        for env_var in ["LD_LIBRARY_PATH", "DYLD_LIBRARY_PATH"]:
-            current = env.get(env_var, "")
-            env[env_var] = f"{lib_dir}:{current}" if current else str(lib_dir)
-
-    # Set PLUMED_ROOT to override hardcoded install prefix from build
-    env["PLUMED_ROOT"] = str(_lib_dir)
+    # PLUMED_ROOT must point to lib/plumed/ where scripts/ and patches/ are
+    env["PLUMED_ROOT"] = str(_lib_dir / "lib" / "plumed")
 
     result = subprocess.run([str(BUNDLED_PLUMED_BIN)] + sys.argv[1:], env=env)
     sys.exit(result.returncode)
