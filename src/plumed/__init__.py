@@ -72,5 +72,13 @@ def cli() -> None:
         print("Error: Bundled PLUMED executable not found.", file=sys.stderr)
         sys.exit(1)
 
-    result = subprocess.run([str(BUNDLED_PLUMED_BIN)] + sys.argv[1:])
+    # Set up environment with library path for the executable
+    env = os.environ.copy()
+    lib_dir = _lib_dir / "lib"
+    if lib_dir.exists():
+        for env_var in ["LD_LIBRARY_PATH", "DYLD_LIBRARY_PATH"]:
+            current = env.get(env_var, "")
+            env[env_var] = f"{lib_dir}:{current}" if current else str(lib_dir)
+
+    result = subprocess.run([str(BUNDLED_PLUMED_BIN)] + sys.argv[1:], env=env)
     sys.exit(result.returncode)
