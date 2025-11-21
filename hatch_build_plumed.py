@@ -134,7 +134,7 @@ class PlumedBuildHook(BuildHookInterface):
         except (ImportError, NotImplementedError):
             njobs = 2
 
-        make_cmd = ["make", f"-j{njobs}"]
+        make_cmd = ["make", "lib", f"-j{njobs}"]
         print(f"Build command: {' '.join(make_cmd)}")
 
         result = subprocess.run(
