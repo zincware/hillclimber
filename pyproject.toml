@@ -8,6 +8,7 @@ dependencies = [
     "ase>=3.25.0",
     "molify>=0.2.0",
     "rdkit2ase>=0.1.13",
+    "seaborn>=0.13.2",
     "zntrack>=0.8.9",
 ]
 license = { file = "LICENSE" }

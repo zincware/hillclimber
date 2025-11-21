@@ -146,7 +146,6 @@ def eval():
         hills_file="nodes/ASEMD/model/-1/HILLS",
         bin=500,
         outfile="fes.dat",
-        plumed_bin_path="/data/fzills/tools/plumed2/bin",
     )
 
     # Load the fes.dat file

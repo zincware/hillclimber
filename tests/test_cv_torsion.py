@@ -1,5 +1,5 @@
-import pytest
 import molify
+import pytest
 
 import hillclimber as pn
 
