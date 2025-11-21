@@ -39,7 +39,10 @@ hillclimber = 'hillclimber.interfaces:interfaces'
 
 # Hatchling build configuration
 [tool.hatch.build.targets.wheel]
-packages = ["hillclimber"]
+packages = ["src/hillclimber"]
+
+[tool.hatch.build.targets.wheel.sources]
+"src" = ""
 # plumed package is added via force_include in build hook
 # to avoid duplicate file warnings
 
@@ -51,8 +54,11 @@ path = "hatch_build_plumed.py"
 # Don't include build artifacts in source distribution
 exclude = [
     "build/",
-    "hillclimber/_plumed_lib/*.so*",
-    "hillclimber/_plumed_lib/*.dylib",
+    "src/plumed/*.so*",
+    "src/plumed/*.dylib",
+    "src/plumed/lib/",
+    "src/plumed/bin/",
+    "src/plumed/include/",
 ]
 
 # cibuildwheel configuration

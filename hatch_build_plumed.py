@@ -38,7 +38,7 @@ class PlumedBuildHook(BuildHookInterface):
         plumed_src = Path(self.root) / "external" / "plumed2"
         build_dir = Path(self.root) / "build" / "plumed"
         install_dir = Path(self.root) / "build" / "plumed-install"
-        pkg_lib_dir = Path(self.root) / "plumed"
+        pkg_lib_dir = Path(self.root) / "src" / "plumed"
 
         # Verify submodule exists
         if not plumed_src.exists() or not (plumed_src / "configure").exists():
@@ -63,7 +63,7 @@ class PlumedBuildHook(BuildHookInterface):
         # Build Python bindings with Cython
         self._build_python_bindings(install_dir, pkg_lib_dir, build_data)
 
-        # Include plumed package in wheel
+        # Include plumed package in wheel (maps src/plumed -> plumed in wheel)
         build_data.setdefault("force_include", {})[str(pkg_lib_dir)] = "plumed"
 
         print("=" * 70)
