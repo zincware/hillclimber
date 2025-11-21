@@ -87,6 +87,7 @@ class PlumedBuildHook(BuildHookInterface):
             "--enable-modules=all",
             "--enable-shared",
             "--disable-static",
+            "--disable-python",  # We build our own Python bindings with Cython
         ]
 
         # Platform-specific configuration
