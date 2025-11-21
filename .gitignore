@@ -17,6 +17,8 @@ src/plumed/*.dylib
 src/plumed/lib/
 src/plumed/bin/
 src/plumed/include/
+src/plumed/scripts/
+src/plumed/patches/
 src/plumed/*.pyx
 src/plumed/*.pxd
 src/plumed/*.c

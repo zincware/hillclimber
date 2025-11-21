@@ -60,6 +60,19 @@ exclude = [
     "src/plumed/lib/",
     "src/plumed/bin/",
     "src/plumed/include/",
+    # Exclude PLUMED directories not needed for build (based on Makefile)
+    "external/plumed2/regtest/",
+    "external/plumed2/user-doc/",
+    "external/plumed2/developer-doc/",
+    "external/plumed2/new-manual/",
+    "external/plumed2/.ci/",
+    "external/plumed2/.github/",
+    "external/plumed2/astyle/",
+    "external/plumed2/macports/",
+    "external/plumed2/docker/",
+    "external/plumed2/conda/",
+    "external/plumed2/CHANGES/",
+    "external/plumed2/plugins/",
 ]
 
 [tool.cibuildwheel.linux]
