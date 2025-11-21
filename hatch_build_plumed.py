@@ -224,17 +224,21 @@ class PlumedBuildHook(BuildHookInterface):
         if not lib_files:
             raise RuntimeError(f"No PLUMED library found matching {lib_pattern} in {lib_dir}")
 
+        # In CI, auditwheel/delocate will handle library bundling to avoid duplicates
+        is_ci = os.environ.get("CIBUILDWHEEL") == "1"
+
         for lib_file in lib_files:
-            # Copy to lib subdirectory for executables to find
+            # Copy to lib subdirectory for executables and Cython compilation
             dest = pkg_lib_subdir / lib_file.name
             print(f"  Copying {lib_file.name} -> {dest}")
             shutil.copy2(lib_file, dest)
             dest.chmod(0o755)
 
-            # Also copy to root of plumed package for Python bindings
-            dest_root = pkg_lib_dir / lib_file.name
-            shutil.copy2(lib_file, dest_root)
-            dest_root.chmod(0o755)
+            # Skip root copy in CI - auditwheel/delocate will bundle libs properly
+            if not is_ci:
+                dest_root = pkg_lib_dir / lib_file.name
+                shutil.copy2(lib_file, dest_root)
+                dest_root.chmod(0o755)
 
         # Copy PLUMED executables (plumed, sum_hills, etc.)
         bin_dir = install_dir / "bin"
