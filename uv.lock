@@ -1047,11 +1047,6 @@ dependencies = [
     { name = "zntrack" },
 ]
 
-[package.optional-dependencies]
-system-plumed = [
-    { name = "plumed" },
-]
-
 [package.dev-dependencies]
 dev = [
     { name = "hatchling" },
@@ -1063,11 +1058,9 @@ dev = [
 requires-dist = [
     { name = "ase", specifier = ">=3.25.0" },
     { name = "molify", specifier = ">=0.2.0" },
-    { name = "plumed", marker = "extra == 'system-plumed'", specifier = ">=2.9.0" },
     { name = "rdkit2ase", specifier = ">=0.1.13" },
     { name = "zntrack", specifier = ">=0.8.9" },
 ]
-provides-extras = ["system-plumed"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -1898,12 +1891,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/f9/e2/3e91f31a7d2b083fe
 wheels = [
     { url = "https://files.pythonhosted.org/packages/54/20/4d324d65cc6d9205fabedc306948156824eb9f0ee1633355a8f7ec5c66bf/pluggy-1.6.0-py3-none-any.whl", hash = "sha256:e920276dd6813095e9377c0bc5566d94c932c33b27a3e3945d8389c374dd4746", size = 20538, upload-time = "2025-05-15T12:30:06.134Z" },
 ]
-
-[[package]]
-name = "plumed"
-version = "2.9.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/f2/7a/4e3c62471b040efdaad5ae1e2427c38465c488aaaf500326c99a9d0c33ee/plumed-2.9.0.tar.gz", hash = "sha256:c92fee154eaaf696e465eece8fbb1a0f6a8336cb91bf35b79b4ee0f8b6d341c6", size = 293488, upload-time = "2023-05-25T09:50:48.321Z" }
 
 [[package]]
 name = "prompt-toolkit"

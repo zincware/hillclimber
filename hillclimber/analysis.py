@@ -4,9 +4,7 @@ This module provides tools for analyzing metadynamics simulations,
 including free energy surface reconstruction and other post-processing tasks.
 """
 
-import os
 import re
-import shutil
 import subprocess
 import typing as t
 from pathlib import Path
@@ -70,7 +68,6 @@ def _validate_multi_cv_params(
 
 def sum_hills(
     hills_file: str | Path,
-    plumed_bin_path: str | Path | None = None,
     # Boolean flags
     negbias: bool = False,
     nohistory: bool = False,
@@ -107,11 +104,6 @@ def sum_hills(
     hills_file : str or Path
         Path to the HILLS file to analyze. This file is generated during
         metadynamics simulations and contains the deposited Gaussian hills.
-    plumed_bin_path : str or Path, optional
-        Path to the PLUMED installation directory (containing ``bin/`` and ``lib/``
-        subdirectories). If None, searches for ``plumed`` in the system PATH.
-        When a full installation path is provided, the function will properly set
-        LD_LIBRARY_PATH to include the PLUMED libraries.
     negbias : bool, default=False
         Print the negative bias instead of the free energy.
     nohistory : bool, default=False
@@ -161,8 +153,7 @@ def sum_hills(
     Raises
     ------
     FileNotFoundError
-        If the HILLS file, PLUMED executable, or PLUMED installation directory
-        cannot be found.
+        If the HILLS file cannot be found.
     ValueError
         If list-based parameters (``bin``, ``min_bounds``, ``max_bounds``, etc.)
         have inconsistent lengths when using multiple CVs.
@@ -232,70 +223,6 @@ def sum_hills(
     if not hills_file.exists():
         raise FileNotFoundError(f"HILLS file not found: {hills_file}")
 
-    # Find PLUMED executable and set up environment
-    env = os.environ.copy()
-
-    if plumed_bin_path is None:
-        # First, try to use bundled PLUMED from the plumed package
-        try:
-            from plumed import BUNDLED_PLUMED_BIN, BUNDLED_KERNEL_PATH
-
-            if BUNDLED_PLUMED_BIN is not None and BUNDLED_PLUMED_BIN.exists():
-                plumed_exec = str(BUNDLED_PLUMED_BIN)
-
-                # Set up library path for bundled PLUMED
-                # The bundled library is in the same directory as the Python module
-                if BUNDLED_KERNEL_PATH is not None:
-                    lib_dir = BUNDLED_KERNEL_PATH.parent
-
-                    # Set LD_LIBRARY_PATH (Linux) and DYLD_LIBRARY_PATH (macOS)
-                    for env_var in ["LD_LIBRARY_PATH", "DYLD_LIBRARY_PATH"]:
-                        current_path = env.get(env_var, "")
-                        if current_path:
-                            env[env_var] = f"{lib_dir}:{current_path}"
-                        else:
-                            env[env_var] = str(lib_dir)
-            else:
-                # Fall back to system PATH
-                plumed_exec = shutil.which("plumed")
-                if plumed_exec is None:
-                    raise FileNotFoundError(
-                        "PLUMED executable not found in bundled package or system PATH. "
-                        "Please install PLUMED or specify the installation path with plumed_bin_path="
-                    )
-        except ImportError:
-            # plumed package not available, try system PATH
-            plumed_exec = shutil.which("plumed")
-            if plumed_exec is None:
-                raise FileNotFoundError(
-                    "PLUMED executable not found in system PATH. "
-                    "Please install PLUMED or specify the installation path with plumed_bin_path="
-                )
-    else:
-        # Use provided PLUMED installation path
-        plumed_bin_path = Path(plumed_bin_path)
-        plumed_exec = plumed_bin_path / "bin" / "plumed"
-        lib_path = plumed_bin_path / "lib"
-
-        # Verify paths exist
-        if not plumed_exec.exists():
-            raise FileNotFoundError(
-                f"PLUMED executable not found at: {plumed_exec}\n"
-                f"Make sure plumed_bin_path points to the PLUMED installation directory "
-                f"containing bin/ and lib/ subdirectories."
-            )
-        if not lib_path.exists():
-            raise FileNotFoundError(f"PLUMED lib directory not found: {lib_path}")
-
-        # Set LD_LIBRARY_PATH for PLUMED libraries
-        current_ld_path = env.get("LD_LIBRARY_PATH", "")
-        if current_ld_path:
-            env["LD_LIBRARY_PATH"] = f"{lib_path}:{current_ld_path}"
-        else:
-            env["LD_LIBRARY_PATH"] = str(lib_path)
-
-        plumed_exec = str(plumed_exec)
-
     # Validate multi-CV parameter consistency
     _validate_multi_cv_params(
         min_bounds=min_bounds,
@@ -307,7 +234,7 @@ def sum_hills(
     )
 
     # Build command
-    cmd_parts = [plumed_exec, "sum_hills"]
+    cmd_parts = ["plumed", "sum_hills"]
 
     # Add hills file
     cmd_parts.extend(["--hills", str(hills_file)])
@@ -358,7 +285,6 @@ def sum_hills(
 
     result = subprocess.run(
         cmd_parts,
-        env=env,
         capture_output=not verbose,
         text=True,
         check=check,

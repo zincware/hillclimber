@@ -64,7 +64,7 @@ class PlumedBuildHook(BuildHookInterface):
         self._build_python_bindings(install_dir, pkg_lib_dir, build_data)
 
         # Include plumed package in wheel
-        build_data["force_include"][str(pkg_lib_dir)] = "plumed"
+        build_data.setdefault("force_include", {})[str(pkg_lib_dir)] = "plumed"
 
         print("=" * 70)
         print("PLUMED Build Hook: Completed successfully")
@@ -294,9 +294,8 @@ class PlumedBuildHook(BuildHookInterface):
         # Compile the Cython extension
         try:
             from Cython.Build import cythonize
-            from setuptools import Extension
+            from setuptools import Distribution, Extension
             from setuptools.command.build_ext import build_ext
-            from distutils.core import Distribution
         except ImportError as e:
             print(f"  Warning: Could not import Cython/setuptools: {e}")
             print("  Skipping Python bindings compilation")

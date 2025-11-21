@@ -1,5 +1,3 @@
-# No special initialization needed - plumed is now a separate package
-
 from hillclimber.actions import PrintAction
 from hillclimber.analysis import plot_cv_time_series, read_colvar, sum_hills
 from hillclimber.biases import LowerWallBias, RestraintBias, UpperWallBias

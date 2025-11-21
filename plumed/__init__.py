@@ -61,4 +61,16 @@ except ImportError as e:
     import warnings
     warnings.warn(f"PLUMED Python bindings not available: {e}")
 
-__all__ = ["BUNDLED_KERNEL_PATH", "BUNDLED_PLUMED_BIN"]
+__all__ = ["BUNDLED_KERNEL_PATH", "BUNDLED_PLUMED_BIN", "cli"]
+
+
+def cli() -> None:
+    """Run the bundled PLUMED command-line tool."""
+    import subprocess
+
+    if BUNDLED_PLUMED_BIN is None or not BUNDLED_PLUMED_BIN.exists():
+        print("Error: Bundled PLUMED executable not found.", file=sys.stderr)
+        sys.exit(1)
+
+    result = subprocess.run([str(BUNDLED_PLUMED_BIN)] + sys.argv[1:])
+    sys.exit(result.returncode)
