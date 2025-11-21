@@ -61,3 +61,8 @@ exclude = [
     "src/plumed/bin/",
     "src/plumed/include/",
 ]
+
+[tool.cibuildwheel.linux]
+# We must add the build path to LD_LIBRARY_PATH so auditwheel can find
+# libplumedKernel.so, bundle it, and patch the RPATH correctly.
+repair-wheel-command = "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/project/build/plumed-install/lib && auditwheel repair -w {dest_dir} {wheel}"
