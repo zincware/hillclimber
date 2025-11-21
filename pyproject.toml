@@ -1,29 +1,68 @@
 [project]
 name = "hillclimber"
-version = "0.1.0a5"
+version = "0.1.5a1"
 description = "Python interfaces for the plumed library with enhanced sampling."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "ase>=3.25.0",
-    "plumed>=2.9.0",
+    "molify>=0.2.0",
     "rdkit2ase>=0.1.13",
+    "seaborn>=0.13.2",
     "zntrack>=0.8.9",
 ]
+license = { file = "LICENSE" }
 
 
 [build-system]
-requires = ["hatchling"]
+requires = [
+    "hatchling",
+    "Cython>=3.0",
+    "setuptools>=65.0",  # For compiling Cython extensions
+]
 build-backend = "hatchling.build"
 
 [dependency-groups]
 dev = [
+    "hatchling>=1.27.0",
     "ipykernel>=6.30.1",
     "pytest>=8.4.1",
 ]
+
+[project.scripts]
+plumed = "plumed:cli"
 
 [project.entry-points.'zntrack.nodes']
 hillclimber = 'hillclimber.nodes:nodes'
 
 [project.entry-points.'zntrack.interfaces']
 hillclimber = 'hillclimber.interfaces:interfaces'
+
+# Hatchling build configuration
+[tool.hatch.build.targets.wheel]
+packages = ["src/hillclimber"]
+
+[tool.hatch.build.targets.wheel.sources]
+"src" = ""
+# plumed package is added via force_include in build hook
+# to avoid duplicate file warnings
+
+# Custom build hook to compile and bundle PLUMED
+[tool.hatch.build.targets.wheel.hooks.custom]
+path = "hatch_build_plumed.py"
+
+[tool.hatch.build.targets.sdist]
+# Don't include build artifacts in source distribution
+exclude = [
+    "build/",
+    "src/plumed/*.so*",
+    "src/plumed/*.dylib",
+    "src/plumed/lib/",
+    "src/plumed/bin/",
+    "src/plumed/include/",
+]
+
+[tool.cibuildwheel.linux]
+# We must add the build path to LD_LIBRARY_PATH so auditwheel can find
+# libplumedKernel.so, bundle it, and patch the RPATH correctly.
+repair-wheel-command = "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/project/build/plumed-install/lib && auditwheel repair -w {dest_dir} {wheel}"

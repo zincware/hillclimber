@@ -1,7 +1,7 @@
 import ipsuite as ips
-from src import ANIImport
 
 import hillclimber as hc
+from src import ANIImport
 
 
 def main():

@@ -39,12 +39,12 @@ class FASTAtoms(zntrack.Node):
 
     def run(self):
         import ase.io
-        import rdkit2ase
+        import molify
         from rdkit import Chem
 
         mol = Chem.MolFromFASTA(self.text)
         self.smiles = Chem.MolToSmiles(mol)
-        frames = rdkit2ase.rdkit2ase(mol)
+        frames = molify.rdkit2ase(mol)
         ase.io.write(self.frames_path, frames)
 
     @property
@@ -146,7 +146,6 @@ def eval():
         hills_file="nodes/ASEMD/model/-1/HILLS",
         bin=500,
         outfile="fes.dat",
-        plumed_bin_path="/data/fzills/tools/plumed2/bin",
     )
 
     # Load the fes.dat file

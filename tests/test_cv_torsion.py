@@ -1,5 +1,5 @@
+import molify
 import pytest
-import rdkit2ase
 
 import hillclimber as pn
 
@@ -7,7 +7,7 @@ import hillclimber as pn
 def test_torsion_cv_with_peptide():
     """Test TORSION CV with peptide molecule and SMARTS selections."""
     # Create the peptide molecule
-    atoms = rdkit2ase.smiles2atoms("CC(=O)NC(C)C(=O)NC")
+    atoms = molify.smiles2atoms("CC(=O)NC(C)C(=O)NC")
     selector1 = pn.SMARTSSelector(pattern="CC(=O)N[C:1]([C:2])[C:3](=O)[N:4]C")
 
     torsion_cv1 = pn.TorsionCV(atoms=selector1, prefix="phi")
@@ -21,7 +21,7 @@ def test_torsion_cv_with_peptide():
 
 def test_torsion_cv_validation_error():
     """Test that TorsionCV raises error for wrong number of atoms."""
-    atoms = rdkit2ase.smiles2atoms("CC")
+    atoms = molify.smiles2atoms("CC")
 
     # Create selector with wrong number of atoms (only 2)
     selector = pn.IndexSelector(indices=[[0, 1]])
@@ -35,7 +35,7 @@ def test_torsion_cv_validation_error():
 def test_torsion_cv_strategy_all():
     """Test TorsionCV with strategy='all' to process multiple torsions."""
     # Create a molecule with multiple torsion angles
-    atoms = rdkit2ase.smiles2atoms("CC(C)CC")
+    atoms = molify.smiles2atoms("CC(C)CC")
 
     # Create selector that returns multiple 4-atom groups
     # Each group represents a different torsion angle
@@ -67,7 +67,7 @@ def test_torsion_cv_alanine_dipeptide_phi_psi():
     Molecule: Ace-Ala-NMe (CC(=O)-NH-CH(CH3)-CO-NH-CH3)
     """
     # Create alanine dipeptide
-    atoms = rdkit2ase.smiles2atoms("CC(=O)NC(C)C(=O)NC")
+    atoms = molify.smiles2atoms("CC(=O)NC(C)C(=O)NC")
 
     # Phi angle: C(carbonyl) - N - CA - C(carbonyl)
     # Correct SMARTS pattern for phi

@@ -7,23 +7,6 @@
 
 ## Installation
 
-### Prerequisites
-
-For `uv add plumed`, you might need
-```bash
-export CC=gcc
-export CXX=g++
-```
-
-You'll also need to configure PLUMED per project. Create an `env.yaml` file:
-
-```yaml
-global:
-  PLUMED_KERNEL: /path/to/plumed2/lib/libplumedKernel.so
-```
-
-### Install hillclimber
-
 ```bash
 uv add hillclimber
 ```

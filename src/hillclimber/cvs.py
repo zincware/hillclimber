@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import Dict, List, Literal, Optional, Tuple, Union
 
 # Third-party
-import rdkit2ase
+import molify
 from ase import Atoms
 from PIL import Image
 from rdkit import Chem
@@ -66,7 +66,7 @@ class _BasePlumedCV(CollectiveVariable):
             A PIL Image object of the visualization.
         """
         highlight_map = self._get_atom_highlights(atoms, **kwargs)
-        mol = rdkit2ase.ase2rdkit(atoms)
+        mol = molify.ase2rdkit(atoms)
 
         if not highlight_map:
             return Draw.MolsToGridImage(
