@@ -61,14 +61,3 @@ exclude = [
     "src/plumed/bin/",
     "src/plumed/include/",
 ]
-
-# cibuildwheel configuration
-[tool.cibuildwheel]
-build-frontend = "build[uv]"
-skip = ["pp*", "*-musllinux_*", "*-win32", "*-manylinux_i686"]
-
-[tool.cibuildwheel.linux]
-before-all = "yum install -y gcc-gfortran lapack-devel blas-devel xxd || apt-get update && apt-get install -y gfortran liblapack-dev libblas-dev xxd"
-
-[tool.cibuildwheel.macos]
-before-all = "brew install gcc openblas lapack xxd || true"
