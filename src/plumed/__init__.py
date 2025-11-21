@@ -80,5 +80,8 @@ def cli() -> None:
             current = env.get(env_var, "")
             env[env_var] = f"{lib_dir}:{current}" if current else str(lib_dir)
 
+    # Set PLUMED_ROOT to override hardcoded install prefix from build
+    env["PLUMED_ROOT"] = str(_lib_dir)
+
     result = subprocess.run([str(BUNDLED_PLUMED_BIN)] + sys.argv[1:], env=env)
     sys.exit(result.returncode)

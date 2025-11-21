@@ -1,6 +1,6 @@
 [project]
 name = "hillclimber"
-version = "0.1.5a1"
+version = "0.1.5a2"
 description = "Python interfaces for the plumed library with enhanced sampling."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -60,20 +60,6 @@ exclude = [
     "src/plumed/lib/",
     "src/plumed/bin/",
     "src/plumed/include/",
-    # Exclude unused PLUMED directories
-    "external/plumed2/regtest/",
-    "external/plumed2/user-doc/",
-    "external/plumed2/developer-doc/",
-    "external/plumed2/new-manual/",
-    "external/plumed2/.ci/",
-    "external/plumed2/.github/",
-    "external/plumed2/vim/",
-    "external/plumed2/json/",
-    "external/plumed2/astyle/",
-    "external/plumed2/test/",
-    "external/plumed2/fortran/",
-    "external/plumed2/patches/",
-    "external/plumed2/plugins/",
 ]
 
 [tool.cibuildwheel.linux]

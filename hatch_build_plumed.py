@@ -266,6 +266,27 @@ class PlumedBuildHook(BuildHookInterface):
             shutil.copy2(plumed_h, dest_include / "Plumed.h")
             print(f"  Copied Plumed.h for Python bindings")
 
+        # Copy lib/plumed data directory (module configs, etc.)
+        plumed_data_dir = lib_dir / "plumed"
+        if plumed_data_dir.exists():
+            dest_data = pkg_lib_subdir / "plumed"
+            if dest_data.exists():
+                shutil.rmtree(dest_data)
+            shutil.copytree(plumed_data_dir, dest_data)
+            print(f"  Copied PLUMED data directory to {dest_data}")
+
+        # Copy scripts/ and patches/ directories needed by PLUMED CLI
+        for subdir in ["scripts", "patches"]:
+            src_subdir = install_dir / "lib" / "plumed" / subdir
+            if not src_subdir.exists():
+                src_subdir = install_dir / subdir
+            if src_subdir.exists():
+                dest_subdir = pkg_lib_dir / subdir
+                if dest_subdir.exists():
+                    shutil.rmtree(dest_subdir)
+                shutil.copytree(src_subdir, dest_subdir)
+                print(f"  Copied {subdir}/ directory to {dest_subdir}")
+
         print("Library and executable bundling complete.")
 
     def _build_python_bindings(
@@ -360,6 +381,11 @@ class PlumedBuildHook(BuildHookInterface):
                 dest = pkg_lib_dir / Path(ext_file).name
                 shutil.move(ext_file, dest)
                 print(f"  Moved {Path(ext_file).name} to {dest}")
+
+                # Fix library paths on macOS using install_name_tool
+                if sys.platform == "darwin":
+                    self._fix_macos_library_paths(dest, pkg_lib_dir)
+
             # Remove the nested directory if empty
             try:
                 nested_ext_dir.rmdir()
@@ -367,3 +393,46 @@ class PlumedBuildHook(BuildHookInterface):
                 pass
 
         print("  Python bindings compiled successfully!")
+
+    def _fix_macos_library_paths(self, ext_path: Path, pkg_lib_dir: Path) -> None:
+        """Fix library paths in macOS extension to use @loader_path.
+
+        Parameters
+        ----------
+        ext_path : Path
+            Path to the compiled extension (.so file).
+        pkg_lib_dir : Path
+            Package library directory containing the bundled library.
+        """
+        print(f"  Fixing macOS library paths in {ext_path.name}...")
+
+        # Get current library dependencies
+        result = subprocess.run(
+            ["otool", "-L", str(ext_path)],
+            capture_output=True,
+            text=True,
+        )
+
+        if result.returncode != 0:
+            print(f"  Warning: otool failed: {result.stderr}")
+            return
+
+        # Find and fix libplumedKernel paths
+        for line in result.stdout.splitlines():
+            line = line.strip()
+            if "libplumedKernel" in line:
+                # Extract the path (first part before the parenthesis)
+                old_path = line.split()[0]
+                # New path relative to the extension location
+                new_path = "@loader_path/lib/libplumedKernel.dylib"
+
+                change_result = subprocess.run(
+                    ["install_name_tool", "-change", old_path, new_path, str(ext_path)],
+                    capture_output=True,
+                    text=True,
+                )
+
+                if change_result.returncode == 0:
+                    print(f"  Changed {old_path} -> {new_path}")
+                else:
+                    print(f"  Warning: install_name_tool failed: {change_result.stderr}")
