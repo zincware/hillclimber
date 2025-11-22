@@ -94,11 +94,11 @@ class PlumedBuildHook(BuildHookInterface):
         if sys.platform == "darwin":
             configure_cmd.extend([
                 "--disable-ld-r",
-                "LDFLAGS=-Wl,-rpath,@loader_path",
+                "LDFLAGS=-Wl,-rpath,@loader_path/../lib",
             ])
         elif sys.platform.startswith("linux"):
             configure_cmd.extend([
-                "LDFLAGS=-Wl,-rpath,$ORIGIN",
+                "LDFLAGS=-Wl,-rpath,$ORIGIN/../lib",
                 "CXXFLAGS=-Wno-error",
             ])
 
