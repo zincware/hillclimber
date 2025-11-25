@@ -1,6 +1,6 @@
 [project]
 name = "hillclimber"
-version = "0.1.5a4"
+version = "0.1.5a5"
 description = "Python interfaces for the plumed library with enhanced sampling."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -74,7 +74,6 @@ exclude = [
     "external/plumed2/docker/",
     "external/plumed2/conda/",
     "external/plumed2/CHANGES/",
-    # Keep external/plumed2/plugins/pycv/ for pycv build
 ]
 
 [tool.cibuildwheel.linux]

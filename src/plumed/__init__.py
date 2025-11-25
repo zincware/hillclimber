@@ -47,7 +47,6 @@ __all__ = [
     "BUNDLED_PLUMED_BIN",
     "BUNDLED_PYCV_PATH",
     "get_pycv_path",
-    "setup_pycv_runtime",
     "cli",
 ]
 
@@ -99,26 +98,5 @@ def get_pycv_path() -> str:
     https://www.plumed.org/doc-master/user-doc/html/_p_y_c_v_i_n_t_e_r_f_a_c_e.html
     """
     if BUNDLED_PYCV_PATH is None or not BUNDLED_PYCV_PATH.exists():
-        raise RuntimeError(
-            "pycv plugin not found. Ensure hillclimber was built with pycv support."
-        )
+        raise RuntimeError("pycv plugin not found.")
     return str(BUNDLED_PYCV_PATH)
-
-
-def setup_pycv_runtime() -> None:
-    """Configure runtime for pycv plugin compatibility.
-
-    This sets RTLD_GLOBAL flags to ensure C++ extensions can share
-    runtime type information. Call this before importing plumedCommunications
-    or using pycv with ASE.
-
-    Note
-    ----
-    This function should be called at the very beginning of your script,
-    before any other imports that might load shared libraries.
-    """
-    if hasattr(os, "RTLD_GLOBAL") and hasattr(os, "RTLD_NOW"):
-        try:
-            sys.setdlopenflags(os.RTLD_NOW | os.RTLD_GLOBAL)
-        except (AttributeError, OSError):
-            pass  # Not supported on this platform
