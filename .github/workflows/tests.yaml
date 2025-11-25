@@ -19,8 +19,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: true
-      - uses: julia-actions/setup-julia@v2
-
       - name: Install uv and set the python version
         uses: astral-sh/setup-uv@v5
         with:

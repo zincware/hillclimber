@@ -1,6 +1,6 @@
 [project]
 name = "hillclimber"
-version = "0.1.5a4"
+version = "0.1.5a5"
 description = "Python interfaces for the plumed library with enhanced sampling."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -19,13 +19,19 @@ requires = [
     "hatchling",
     "Cython>=3.0",
     "setuptools>=65.0",  # For compiling Cython extensions
+    "pybind11>=2.11",    # For pycv plugin
+    "cmake>=3.15",       # For pycv plugin build
 ]
 build-backend = "hatchling.build"
 
 [dependency-groups]
 dev = [
+    "cmake>=4.2.0",
+    "cython>=3.2.1",
     "hatchling>=1.27.0",
     "ipykernel>=6.30.1",
+    "jax>=0.8.1",
+    "pybind11>=3.0.1",
     "pytest>=8.4.1",
 ]
 
@@ -68,7 +74,6 @@ exclude = [
     "external/plumed2/docker/",
     "external/plumed2/conda/",
     "external/plumed2/CHANGES/",
-    "external/plumed2/plugins/",
 ]
 
 [tool.cibuildwheel.linux]

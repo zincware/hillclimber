@@ -18,9 +18,7 @@ def packmol() -> str:
 def ethanol_water(packmol):
     ethanol = molify.smiles2conformers("CCO", numConfs=100)
     water = molify.smiles2conformers("O", numConfs=100)
-    box = molify.pack(
-        [ethanol, water], counts=[16, 16], density=700, packmol=packmol
-    )
+    box = molify.pack([ethanol, water], counts=[16, 16], density=700, packmol=packmol)
     return box.copy()
 
 

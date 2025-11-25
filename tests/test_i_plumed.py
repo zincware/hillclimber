@@ -7,14 +7,15 @@ This test verifies that:
 """
 
 import ase.units
-import pytest
 import numpy as np
+import pytest
 from ase import Atoms
 from ase.calculators.lj import LennardJones
 from ase.md.langevin import Langevin
 from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
 
 import hillclimber as hc
+
 
 @pytest.fixture
 def lj():
@@ -36,7 +37,8 @@ def lj():
 def test_plumed_cli():
     # run plumed --help to ensure CLI is functional
     import subprocess
-    result = subprocess.run(['plumed', '--help'], capture_output=True, text=True)
+
+    result = subprocess.run(["plumed", "--help"], capture_output=True, text=True)
     assert result.returncode == 0
     assert "Usage: plumed [options] [command] [command options]" in result.stdout
 
@@ -75,8 +77,6 @@ def test_argon_dimer_metad_distance_sum_hills_integration(tmp_path, lj):
         file="HILLS",
         flush=10,
     )
-
-
 
     # Step 6: Create MetaDynamicsModel
     metad_model = hc.MetaDynamicsModel(
