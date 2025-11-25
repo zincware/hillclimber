@@ -18,6 +18,9 @@ src/plumed/*.pyx
 src/plumed/*.pxd
 src/plumed/*.c
 
+# pycv build artifacts
+src/plumedCommunications*.so
+
 # Build logs
 build.log
 *.log
