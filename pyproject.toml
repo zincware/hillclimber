@@ -1,6 +1,6 @@
 [project]
 name = "hillclimber"
-version = "0.1.5a7"
+version = "0.1.5a8"
 description = "Python interfaces for the plumed library with enhanced sampling."
 readme = "README.md"
 requires-python = ">=3.11"
