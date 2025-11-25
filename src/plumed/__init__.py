@@ -64,6 +64,13 @@ def cli() -> None:
     # PLUMED_ROOT must point to lib/plumed/ where scripts/ and patches/ are
     env["PLUMED_ROOT"] = str(_lib_dir / "lib" / "plumed")
 
+    # Add library directory to library path so plumed can find libplumedKernel.so
+    lib_path = str(_lib_dir / "lib")
+    if sys.platform == "darwin":
+        env["DYLD_LIBRARY_PATH"] = lib_path + ":" + env.get("DYLD_LIBRARY_PATH", "")
+    else:
+        env["LD_LIBRARY_PATH"] = lib_path + ":" + env.get("LD_LIBRARY_PATH", "")
+
     result = subprocess.run([str(BUNDLED_PLUMED_BIN)] + sys.argv[1:], env=env)
     sys.exit(result.returncode)
 

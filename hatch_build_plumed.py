@@ -100,23 +100,20 @@ class PlumedBuildHook(BuildHookInterface):
             "--enable-modules=all",
             "--enable-shared",
             "--disable-static",
+            "--disable-python",  # We build our own Python bindings with Cython
         ]
 
         # Platform-specific configuration
         if sys.platform == "darwin":
-            configure_cmd.extend(
-                [
-                    "--disable-ld-r",
-                    "LDFLAGS=-Wl,-rpath,@loader_path",
-                ]
-            )
+            configure_cmd.extend([
+                "--disable-ld-r",
+                "LDFLAGS=-Wl,-rpath,@loader_path/../lib",
+            ])
         elif sys.platform.startswith("linux"):
-            configure_cmd.extend(
-                [
-                    "LDFLAGS=-Wl,-rpath,$ORIGIN",
-                    "CXXFLAGS=-Wno-error",
-                ]
-            )
+            configure_cmd.extend([
+                "LDFLAGS=-Wl,-rpath,$ORIGIN/../lib",
+                "CXXFLAGS=-Wno-error",
+            ])
 
         print(f"Configure command: {' '.join(configure_cmd)}")
         print(f"Running in: {src_dir}")
@@ -138,7 +135,7 @@ class PlumedBuildHook(BuildHookInterface):
 
         njobs = multiprocessing.cpu_count()
 
-        make_cmd = ["make", f"-j{njobs}"]
+        make_cmd = ["make", "lib", f"-j{njobs}"]
         print(f"Build command: {' '.join(make_cmd)}")
 
         subprocess.check_call(
