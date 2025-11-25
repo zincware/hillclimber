@@ -73,6 +73,11 @@ class PlumedBuildHook(BuildHookInterface):
         for so_file in glob.glob(str(src_dir / "plumedCommunications*.so")):
             build_data["force_include"][so_file] = Path(so_file).name
 
+        # Include plumedCommunications.pyi type stub for IDE autocompletion
+        pyi_file = src_dir / "plumedCommunications.pyi"
+        if pyi_file.exists():
+            build_data["force_include"][str(pyi_file)] = "plumedCommunications.pyi"
+
         # Mark wheel as platform-specific (contains compiled code)
         build_data["pure_python"] = False
         build_data["infer_tag"] = True
