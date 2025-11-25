@@ -77,4 +77,4 @@ exclude = [
 ]
 
 [tool.cibuildwheel.linux]
-repair-wheel-command = "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/project/src/plumed/_lib/lib && auditwheel repair -w {dest_dir} {wheel}"
+repair-wheel-command = "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/project/src/plumed/_lib/lib && auditwheel repair --exclude libplumedKernel.so -w {dest_dir} {wheel}"
