@@ -489,7 +489,7 @@ class PlumedBuildHook(BuildHookInterface):
 project(pycv_hillclimber VERSION 1.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 
-find_package(Python REQUIRED COMPONENTS Interpreter Development)
+find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
 find_package(pybind11 CONFIG REQUIRED)
 
 # Use provided PLUMED paths instead of find_package
