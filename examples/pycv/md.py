@@ -1,33 +1,9 @@
-"""Example MD simulation using custom PYCV collective variable with vanilla ASE.
-
-This script demonstrates how to:
-1. Create an Argon dimer system
-2. Use a custom Python-based CV (distance) defined in cv.py
-3. Run Langevin MD with PLUMED using vanilla ASE
-"""
-import sys
-import os
-
-# FORCE GLOBAL SYMBOLS
-# This ensures that C++ extensions (like PLUMED and PyCV) can share 
-# runtime type information and memory structures.
-try:
-    sys.setdlopenflags(os.RTLD_NOW | os.RTLD_GLOBAL)
-except AttributeError:
-    pass # Not a posix system, but since you are on mac, this will run.
-
-# Ensure current directory is in path so PLUMED can find 'pyinfcv'
-sys.path.insert(0, os.getcwd())
-
-from pathlib import Path
-
 import ase
 import ase.units
-from ase.calculators.lj import LennardJones
-from ase.md.langevin import Langevin
-from ase.calculators.plumed import Plumed
-
 import plumed
+from ase.calculators.lj import LennardJones
+from ase.calculators.plumed import Plumed
+from ase.md.langevin import Langevin
 
 # Create Argon dimer system
 system = ase.Atoms(
@@ -44,25 +20,11 @@ lj_calc = LennardJones(sigma=sigma_ar, epsilon=epsilon_ar, rc=cutoff, smooth=Tru
 
 # Get path to PYCV library
 pycv_path = plumed.get_pycv_path()
-
-# Get absolute path to cv.py module (in same directory as this script)
-cv_module_path = Path(__file__).parent / "cv.py"
-cv_module_name = cv_module_path.stem  # "cv"
-
-# Create PLUMED input as list of strings (required by ASE Plumed calculator)
-# Does not work?!
 plumed_input = [
     f"LOAD FILE={pycv_path}",
-    "cvPY: PYCVINTERFACE ATOMS=1,2 IMPORT=pyinfcv CALCULATE=cv1",
+    "cvPY: PYCVINTERFACE ATOMS=1,2 IMPORT=cv CALCULATE=cv1",
     "PRINT FILE=colvar.out ARG=cvPY STRIDE=1",
 ]
-
-# WORKS!!
-# plumed_input = [
-#     f"LOAD FILE={pycv_path}",
-#     "cvPY: PYFUNCTION IMPORT=pyfn",
-#     "PRINT FILE=colvar.out ARG=*",
-# ]
 
 print("Summary of PLUMED input:")
 for line in plumed_input:
