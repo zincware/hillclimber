@@ -5,12 +5,17 @@ directly into src/plumed/_lib. This enables hillclimber to work without requirin
 users to separately install the PLUMED library.
 """
 
+import glob
+import multiprocessing
 import shutil
 import subprocess
 import sys
 from pathlib import Path
 
+from Cython.Build import cythonize
 from hatchling.builders.hooks.plugin.interface import BuildHookInterface
+from setuptools import Distribution, Extension
+from setuptools.command.build_ext import build_ext
 
 
 class PlumedBuildHook(BuildHookInterface):
@@ -91,32 +96,27 @@ class PlumedBuildHook(BuildHookInterface):
 
         # Platform-specific configuration
         if sys.platform == "darwin":
-            configure_cmd.extend([
-                "--disable-ld-r",
-                "LDFLAGS=-Wl,-rpath,@loader_path",
-            ])
+            configure_cmd.extend(
+                [
+                    "--disable-ld-r",
+                    "LDFLAGS=-Wl,-rpath,@loader_path",
+                ]
+            )
         elif sys.platform.startswith("linux"):
-            configure_cmd.extend([
-                "LDFLAGS=-Wl,-rpath,$ORIGIN",
-                "CXXFLAGS=-Wno-error",
-            ])
+            configure_cmd.extend(
+                [
+                    "LDFLAGS=-Wl,-rpath,$ORIGIN",
+                    "CXXFLAGS=-Wno-error",
+                ]
+            )
 
         print(f"Configure command: {' '.join(configure_cmd)}")
         print(f"Running in: {src_dir}")
 
-        result = subprocess.run(
+        subprocess.check_call(
             configure_cmd,
             cwd=src_dir,
-            capture_output=True,
-            text=True,
         )
-
-        if result.returncode != 0:
-            print("STDOUT:", result.stdout)
-            print("STDERR:", result.stderr)
-            raise RuntimeError(f"PLUMED configure failed with code {result.returncode}")
-
-        print("Configuration complete.")
 
     def _build_plumed(self, src_dir: Path) -> None:
         """Build PLUMED library.
@@ -128,28 +128,15 @@ class PlumedBuildHook(BuildHookInterface):
         """
         print("\n[2/4] Building PLUMED...")
 
-        try:
-            import multiprocessing
-            njobs = multiprocessing.cpu_count()
-        except (ImportError, NotImplementedError):
-            njobs = 2
+        njobs = multiprocessing.cpu_count()
 
         make_cmd = ["make", f"-j{njobs}"]
         print(f"Build command: {' '.join(make_cmd)}")
 
-        result = subprocess.run(
+        subprocess.check_call(
             make_cmd,
             cwd=src_dir,
-            capture_output=True,
-            text=True,
         )
-
-        if result.returncode != 0:
-            print("STDOUT:", result.stdout[-2000:])
-            print("STDERR:", result.stderr[-2000:])
-            raise RuntimeError(f"PLUMED build failed with code {result.returncode}")
-
-        print("Build complete.")
 
     def _install_plumed(self, src_dir: Path) -> None:
         """Install PLUMED to src/plumed/_lib.
@@ -161,17 +148,10 @@ class PlumedBuildHook(BuildHookInterface):
         """
         print("\n[3/4] Installing PLUMED...")
 
-        result = subprocess.run(
+        subprocess.check_call(
             ["make", "install"],
             cwd=src_dir,
-            capture_output=True,
-            text=True,
         )
-
-        if result.returncode != 0:
-            print("STDOUT:", result.stdout)
-            print("STDERR:", result.stderr)
-            raise RuntimeError(f"PLUMED install failed with code {result.returncode}")
 
         print("Installation complete.")
 
@@ -201,14 +181,6 @@ class PlumedBuildHook(BuildHookInterface):
         shutil.copy2(pyx_file, temp_build / "_plumed_core.pyx")
         shutil.copy2(pxd_file, temp_build / "cplumed.pxd")
 
-        try:
-            from Cython.Build import cythonize
-            from setuptools import Distribution, Extension
-            from setuptools.command.build_ext import build_ext
-        except ImportError as e:
-            print(f"  Warning: Could not import Cython/setuptools: {e}")
-            return
-
         # Use headers and library from _lib
         include_dir = install_dir / "include" / "plumed" / "wrapper"
         lib_dir = install_dir / "lib"
@@ -220,7 +192,9 @@ class PlumedBuildHook(BuildHookInterface):
                 include_dirs=[str(include_dir)],
                 library_dirs=[str(lib_dir)],
                 libraries=["plumedKernel"],
-                runtime_library_dirs=[str(lib_dir)] if sys.platform.startswith("linux") else [],
+                runtime_library_dirs=[str(lib_dir)]
+                if sys.platform.startswith("linux")
+                else [],
                 extra_compile_args=[
                     "-D__PLUMED_HAS_DLOPEN",
                     "-D__PLUMED_WRAPPER_LINK_RUNTIME=1",
@@ -231,7 +205,9 @@ class PlumedBuildHook(BuildHookInterface):
         ]
 
         print("  Cythonizing _plumed_core.pyx...")
-        ext_modules = cythonize(extensions, language_level=3, compiler_directives={"embedsignature": True})
+        ext_modules = cythonize(
+            extensions, language_level=3, compiler_directives={"embedsignature": True}
+        )
 
         print("  Compiling extension...")
         dist = Distribution({"ext_modules": ext_modules})
@@ -245,7 +221,6 @@ class PlumedBuildHook(BuildHookInterface):
         # Move extension from nested plumed/plumed/ to plumed/
         nested_ext_dir = pkg_dir / "plumed"
         if nested_ext_dir.exists():
-            import glob
             ext_pattern = str(nested_ext_dir / "_plumed_core*.so")
             for ext_file in glob.glob(ext_pattern):
                 dest = pkg_dir / Path(ext_file).name
