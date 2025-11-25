@@ -116,56 +116,52 @@ def plumedCalculate(action: PLMD.PythonFunction):
 
         sys.path.insert(0, str(tmp_path))
 
-        try:
-            # Create Argon dimer
-            system = ase.Atoms("Ar2", positions=[[0.0, 0.0, 0.0], [3.8, 0.0, 0.0]])
+        # Create Argon dimer
+        system = ase.Atoms("Ar2", positions=[[0.0, 0.0, 0.0], [3.8, 0.0, 0.0]])
 
-            # LJ calculator
-            lj_calc = LennardJones(sigma=3.4, epsilon=0.0104, rc=10.0, smooth=True)
+        # LJ calculator
+        lj_calc = LennardJones(sigma=3.4, epsilon=0.0104, rc=10.0, smooth=True)
 
-            # PLUMED input with PYFUNCTION
-            colvar_file = tmp_path / "colvar_fn.out"
+        # PLUMED input with PYFUNCTION
+        colvar_file = tmp_path / "colvar_fn.out"
 
-            plumed_input = [
-                f"LOAD FILE={pycv_path}",
-                "d: DISTANCE ATOMS=1,2",
-                "fn: PYFUNCTION ARG=d IMPORT=test_fn",
-                f"PRINT FILE={colvar_file} ARG=fn STRIDE=1",
-            ]
+        plumed_input = [
+            f"LOAD FILE={pycv_path}",
+            "d: DISTANCE ATOMS=1,2",
+            "fn: PYFUNCTION ARG=d IMPORT=test_fn",
+            f"PRINT FILE={colvar_file} ARG=fn STRIDE=1",
+        ]
 
-            calc = Plumed(
-                calc=lj_calc,
-                input=plumed_input,
-                timestep=2.0 * ase.units.fs,
-                atoms=system,
-                kT=120.0 * ase.units.kB,
-            )
+        calc = Plumed(
+            calc=lj_calc,
+            input=plumed_input,
+            timestep=2.0 * ase.units.fs,
+            atoms=system,
+            kT=120.0 * ase.units.kB,
+        )
 
-            system.calc = calc
+        system.calc = calc
 
-            # Run short MD
-            dyn = Langevin(
-                atoms=system,
-                timestep=2.0 * ase.units.fs,
-                temperature_K=120.0,
-                friction=0.01,
-            )
+        # Run short MD
+        dyn = Langevin(
+            atoms=system,
+            timestep=2.0 * ase.units.fs,
+            temperature_K=120.0,
+            friction=0.01,
+        )
 
-            dyn.run(steps=5)
+        dyn.run(steps=5)
 
-            assert colvar_file.exists()
+        assert colvar_file.exists()
 
-            # Verify output has data (at least initial step)
-            colvar_content = colvar_file.read_text()
-            lines = [
-                line
-                for line in colvar_content.strip().split("\n")
-                if line and not line.startswith("#")
-            ]
-            assert len(lines) >= 1
-
-        finally:
-            sys.path.remove(str(tmp_path))
+        # Verify output has data (at least initial step)
+        colvar_content = colvar_file.read_text()
+        lines = [
+            line
+            for line in colvar_content.strip().split("\n")
+            if line and not line.startswith("#")
+        ]
+        assert len(lines) >= 1
 
     def test_pycv_interface_with_ase(self, pycv_path, tmp_path):
         """Integration test: PYCVINTERFACE action with ASE simulation."""
@@ -202,62 +198,59 @@ def plumedCalculate(action: PLMD.PythonCVInterface):
 
         sys.path.insert(0, str(tmp_path))
 
-        try:
-            # Create Argon dimer
-            system = ase.Atoms("Ar2", positions=[[0.0, 0.0, 0.0], [3.8, 0.0, 0.0]])
+        # Create Argon dimer
+        system = ase.Atoms("Ar2", positions=[[0.0, 0.0, 0.0], [3.8, 0.0, 0.0]])
 
-            # LJ calculator
-            lj_calc = LennardJones(sigma=3.4, epsilon=0.0104, rc=10.0, smooth=True)
+        # LJ calculator
+        lj_calc = LennardJones(sigma=3.4, epsilon=0.0104, rc=10.0, smooth=True)
 
-            # PLUMED input with PYCVINTERFACE
-            colvar_file = tmp_path / "colvar_cv.out"
+        # PLUMED input with PYCVINTERFACE
+        colvar_file = tmp_path / "colvar_cv.out"
 
-            plumed_input = [
-                f"LOAD FILE={pycv_path}",
-                "cv: PYCVINTERFACE ATOMS=1,2 IMPORT=test_cv",
-                f"PRINT FILE={colvar_file} ARG=cv STRIDE=1",
-            ]
+        plumed_input = [
+            f"LOAD FILE={pycv_path}",
+            "cv: PYCVINTERFACE ATOMS=1,2 IMPORT=test_cv",
+            f"PRINT FILE={colvar_file} ARG=cv STRIDE=1",
+        ]
 
-            calc = Plumed(
-                calc=lj_calc,
-                input=plumed_input,
-                timestep=2.0 * ase.units.fs,
-                atoms=system,
-                kT=120.0 * ase.units.kB,
-            )
+        calc = Plumed(
+            calc=lj_calc,
+            input=plumed_input,
+            timestep=2.0 * ase.units.fs,
+            atoms=system,
+            kT=120.0 * ase.units.kB,
+        )
 
-            system.calc = calc
+        system.calc = calc
 
-            # Run short MD
-            dyn = Langevin(
-                atoms=system,
-                timestep=2.0 * ase.units.fs,
-                temperature_K=120.0,
-                friction=0.01,
-            )
+        # Run short MD
+        dyn = Langevin(
+            atoms=system,
+            timestep=2.0 * ase.units.fs,
+            temperature_K=120.0,
+            friction=0.01,
+        )
 
-            dyn.run(steps=5)
+        dyn.run(steps=5)
 
-            assert colvar_file.exists()
+        assert colvar_file.exists()
 
-            # Verify output has data
-            colvar_content = colvar_file.read_text()
-            lines = [
-                line
-                for line in colvar_content.strip().split("\n")
-                if line and not line.startswith("#")
-            ]
-            assert len(lines) >= 1
+        # Verify output has data
+        colvar_content = colvar_file.read_text()
+        lines = [
+            line
+            for line in colvar_content.strip().split("\n")
+            if line and not line.startswith("#")
+        ]
+        assert len(lines) >= 1
 
-            # Verify first CV value is close to initial distance
-            # Note: PLUMED uses nm internally, ASE uses Angstrom
-            # 3.8 Angstrom = 0.38 nm
-            first_line = lines[0].split()
-            cv_value = float(first_line[1])
-            assert 0.3 < cv_value < 0.5, f"Expected distance ~0.38 nm, got {cv_value}"
+        # Verify first CV value is close to initial distance
+        # Note: PLUMED uses nm internally, ASE uses Angstrom
+        # 3.8 Angstrom = 0.38 nm
+        first_line = lines[0].split()
+        cv_value = float(first_line[1])
+        assert 0.3 < cv_value < 0.5, f"Expected distance ~0.38 nm, got {cv_value}"
 
-        finally:
-            sys.path.remove(str(tmp_path))
 
     def test_pycvinterface_md_simulation(self, pycv_path, tmp_path):
         """Integration test: Run actual MD simulation with PYCVINTERFACE.
@@ -298,67 +291,63 @@ def plumedCalculate(action: PLMD.PythonCVInterface):
 
         sys.path.insert(0, str(tmp_path))
 
-        try:
-            # Create Argon dimer with known initial distance
-            initial_distance = 3.8
-            system = ase.Atoms(
-                "Ar2", positions=[[0.0, 0.0, 0.0], [initial_distance, 0.0, 0.0]]
-            )
+        # Create Argon dimer with known initial distance
+        initial_distance = 3.8
+        system = ase.Atoms(
+            "Ar2", positions=[[0.0, 0.0, 0.0], [initial_distance, 0.0, 0.0]]
+        )
 
-            # LJ calculator for Argon
-            lj_calc = LennardJones(sigma=3.4, epsilon=0.0104, rc=10.0, smooth=True)
+        # LJ calculator for Argon
+        lj_calc = LennardJones(sigma=3.4, epsilon=0.0104, rc=10.0, smooth=True)
 
-            # PLUMED input
-            colvar_file = tmp_path / "md_colvar.out"
-            plumed_input = [
-                f"LOAD FILE={pycv_path}",
-                "cv: PYCVINTERFACE ATOMS=1,2 IMPORT=md_cv",
-                f"PRINT FILE={colvar_file} ARG=cv STRIDE=1",
-            ]
+        # PLUMED input
+        colvar_file = tmp_path / "md_colvar.out"
+        plumed_input = [
+            f"LOAD FILE={pycv_path}",
+            "cv: PYCVINTERFACE ATOMS=1,2 IMPORT=md_cv",
+            f"PRINT FILE={colvar_file} ARG=cv STRIDE=1",
+        ]
 
-            calc = Plumed(
-                calc=lj_calc,
-                input=plumed_input,
-                timestep=2.0 * ase.units.fs,
-                atoms=system,
-                kT=120.0 * ase.units.kB,
-            )
+        calc = Plumed(
+            calc=lj_calc,
+            input=plumed_input,
+            timestep=2.0 * ase.units.fs,
+            atoms=system,
+            kT=120.0 * ase.units.kB,
+        )
 
-            system.calc = calc
+        system.calc = calc
 
-            # Run MD simulation
-            n_steps = 20
-            dyn = Langevin(
-                atoms=system,
-                timestep=2.0 * ase.units.fs,
-                temperature_K=120.0,
-                friction=0.01,
-            )
-            dyn.run(steps=n_steps)
+        # Run MD simulation
+        n_steps = 20
+        dyn = Langevin(
+            atoms=system,
+            timestep=2.0 * ase.units.fs,
+            temperature_K=120.0,
+            friction=0.01,
+        )
+        dyn.run(steps=n_steps)
 
-            # Verify output file exists and has correct number of entries
-            assert colvar_file.exists()
-            colvar_content = colvar_file.read_text()
-            lines = [
-                line
-                for line in colvar_content.strip().split("\n")
-                if line and not line.startswith("#")
-            ]
+        # Verify output file exists and has correct number of entries
+        assert colvar_file.exists()
+        colvar_content = colvar_file.read_text()
+        lines = [
+            line
+            for line in colvar_content.strip().split("\n")
+            if line and not line.startswith("#")
+        ]
 
-            # Should have at least some entries from the simulation
-            assert len(lines) >= 1
+        # Should have at least some entries from the simulation
+        assert len(lines) >= 1
 
-            # Parse all CV values and verify they're physically reasonable
-            # Note: PLUMED uses nm internally, ASE uses Angstrom
-            cv_values = [float(line.split()[1]) for line in lines]
+        # Parse all CV values and verify they're physically reasonable
+        # Note: PLUMED uses nm internally, ASE uses Angstrom
+        cv_values = [float(line.split()[1]) for line in lines]
 
-            # All distances should be positive and reasonable (0.1-1.0 nm = 1-10 Angstrom)
-            for cv in cv_values:
-                assert 0.1 < cv < 1.0, f"Unreasonable distance: {cv} nm"
+        # All distances should be positive and reasonable (0.1-1.0 nm = 1-10 Angstrom)
+        for cv in cv_values:
+            assert 0.1 < cv < 1.0, f"Unreasonable distance: {cv} nm"
 
-            # First value should be close to initial distance (3.8 A = 0.38 nm)
-            initial_distance_nm = initial_distance / 10.0  # Convert A to nm
-            assert abs(cv_values[0] - initial_distance_nm) < 0.01
-
-        finally:
-            sys.path.remove(str(tmp_path))
+        # First value should be close to initial distance (3.8 A = 0.38 nm)
+        initial_distance_nm = initial_distance / 10.0  # Convert A to nm
+        assert abs(cv_values[0] - initial_distance_nm) < 0.01
