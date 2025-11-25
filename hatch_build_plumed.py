@@ -370,25 +370,20 @@ class PlumedBuildHook(BuildHookInterface):
 
         Patches Applied
         ---------------
-        1. ActionWithPython.cpp: Remove EnsureGlobalDLOpen static initializer
-           - Reason: With `-undefined dynamic_lookup`, Py_Initialize may not be
-             resolved at static init time, causing dladdr to fail or crash.
-           - Safe because: Python is already running when the plugin loads.
-
-        2. PythonCVInterface.h: Change dataContainer from py::dict to unique_ptr
+        1. PythonCVInterface.h: Change dataContainer from py::dict to unique_ptr
            - Reason: py::dict{} default constructor calls PyDict_New() which
              requires the GIL, but C++ member initialization happens BEFORE
              the constructor body can acquire the GIL.
            - Fix: Defer initialization to constructor body after GIL acquisition.
 
-        3. PythonCVInterface.cpp: Initialize dataContainer + import module
+        2. PythonCVInterface.cpp: Initialize dataContainer + import module
            - Reason: Must initialize _dataContainerPtr after acquiring GIL.
            - Also imports plumedCommunications to register pybind11 types.
 
-        4. PlumedPythonEmbeddedModule.cpp: Use accessor for dataContainer
+        3. PlumedPythonEmbeddedModule.cpp: Use accessor for dataContainer
            - Reason: dataContainer is now accessed via unique_ptr, need accessor.
 
-        5. PythonCVInterface.cpp & PythonFunction.cpp: Import plumedCommunications
+        4. PythonCVInterface.cpp & PythonFunction.cpp: Import plumedCommunications
            - Reason: When PLUMED loads PythonCVInterface.dylib via LOAD FILE=,
              and the C++ code calls pyCalculate(this), pybind11 needs to convert
              the C++ pointer to a Python object. The type binding is registered
@@ -404,18 +399,11 @@ class PlumedBuildHook(BuildHookInterface):
         """
         src_dir = build_dir / "src"
 
-        # Patch 1: ActionWithPython.cpp - Remove EnsureGlobalDLOpen
-        action_cpp = src_dir / "ActionWithPython.cpp"
-        if action_cpp.exists():
-            content = action_cpp.read_text()
-            patched = content.replace(
-                "auto a=PLMD::DLLoader::EnsureGlobalDLOpen(&Py_Initialize);",
-                "// Removed: EnsureGlobalDLOpen not needed when loaded into running Python",
-            )
-            action_cpp.write_text(patched)
-            print("  Patched ActionWithPython.cpp")
+        # Note: We keep EnsureGlobalDLOpen(&Py_Initialize) as it's needed to make
+        # Python symbols globally visible when PLUMED loads PythonCVInterface.
+        # This is required on macOS for proper symbol resolution.
 
-        # Patch 2: PythonCVInterface.h - Defer dataContainer initialization
+        # Patch 1: PythonCVInterface.h - Defer dataContainer initialization
         pycv_h = src_dir / "PythonCVInterface.h"
         if pycv_h.exists():
             content = pycv_h.read_text()
@@ -427,7 +415,7 @@ class PlumedBuildHook(BuildHookInterface):
             pycv_h.write_text(patched)
             print("  Patched PythonCVInterface.h")
 
-        # Patch 3: PythonCVInterface.cpp - Init dataContainer + import module
+        # Patch 2: PythonCVInterface.cpp - Init dataContainer + import module
         pycv_cpp = src_dir / "PythonCVInterface.cpp"
         if pycv_cpp.exists():
             content = pycv_cpp.read_text()
@@ -441,7 +429,7 @@ class PlumedBuildHook(BuildHookInterface):
             pycv_cpp.write_text(patched)
             print("  Patched PythonCVInterface.cpp")
 
-        # Patch 4: PlumedPythonEmbeddedModule.cpp - Use dataContainer accessor
+        # Patch 3: PlumedPythonEmbeddedModule.cpp - Use dataContainer accessor
         embed_cpp = src_dir / "PlumedPythonEmbeddedModule.cpp"
         if embed_cpp.exists():
             content = embed_cpp.read_text()
@@ -458,7 +446,7 @@ class PlumedBuildHook(BuildHookInterface):
             embed_cpp.write_text(patched)
             print("  Patched PlumedPythonEmbeddedModule.cpp")
 
-        # Patch 5: PythonFunction.cpp - Import plumedCommunications
+        # Patch 4: PythonFunction.cpp - Import plumedCommunications
         pyfn_cpp = src_dir / "PythonFunction.cpp"
         if pyfn_cpp.exists():
             content = pyfn_cpp.read_text()
