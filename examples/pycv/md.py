@@ -1,9 +1,10 @@
 import ase
 import ase.units
-import plumed
 from ase.calculators.lj import LennardJones
 from ase.calculators.plumed import Plumed
 from ase.md.langevin import Langevin
+
+import plumed
 
 # Create Argon dimer system
 system = ase.Atoms(

@@ -35,11 +35,13 @@ BUNDLED_PLUMED_BIN = _plumed_bin if _plumed_bin.exists() else None
 # Import Cython bindings
 try:
     from . import _plumed_core
+
     for name in dir(_plumed_core):
         if not name.startswith("_"):
             globals()[name] = getattr(_plumed_core, name)
 except ImportError as e:
     import warnings
+
     warnings.warn(f"PLUMED Python bindings not available: {e}")
 
 __all__ = [

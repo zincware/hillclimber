@@ -251,7 +251,6 @@ def plumedCalculate(action: PLMD.PythonCVInterface):
         cv_value = float(first_line[1])
         assert 0.3 < cv_value < 0.5, f"Expected distance ~0.38 nm, got {cv_value}"
 
-
     def test_pycvinterface_md_simulation(self, pycv_path, tmp_path):
         """Integration test: Run actual MD simulation with PYCVINTERFACE.
 

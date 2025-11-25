@@ -105,15 +105,19 @@ class PlumedBuildHook(BuildHookInterface):
 
         # Platform-specific configuration
         if sys.platform == "darwin":
-            configure_cmd.extend([
-                "--disable-ld-r",
-                "LDFLAGS=-Wl,-rpath,@loader_path/../lib",
-            ])
+            configure_cmd.extend(
+                [
+                    "--disable-ld-r",
+                    "LDFLAGS=-Wl,-rpath,@loader_path/../lib",
+                ]
+            )
         elif sys.platform.startswith("linux"):
-            configure_cmd.extend([
-                "LDFLAGS=-Wl,-rpath,$ORIGIN/../lib",
-                "CXXFLAGS=-Wno-error",
-            ])
+            configure_cmd.extend(
+                [
+                    "LDFLAGS=-Wl,-rpath,$ORIGIN/../lib",
+                    "CXXFLAGS=-Wno-error",
+                ]
+            )
 
         print(f"Configure command: {' '.join(configure_cmd)}")
         print(f"Running in: {src_dir}")
@@ -406,7 +410,7 @@ class PlumedBuildHook(BuildHookInterface):
             content = action_cpp.read_text()
             patched = content.replace(
                 "auto a=PLMD::DLLoader::EnsureGlobalDLOpen(&Py_Initialize);",
-                "// Removed: EnsureGlobalDLOpen not needed when loaded into running Python"
+                "// Removed: EnsureGlobalDLOpen not needed when loaded into running Python",
             )
             action_cpp.write_text(patched)
             print("  Patched ActionWithPython.cpp")
@@ -418,7 +422,7 @@ class PlumedBuildHook(BuildHookInterface):
             patched = content.replace(
                 "::pybind11::dict dataContainer {};",
                 "std::unique_ptr<::pybind11::dict> _dataContainerPtr;\n"
-                "  ::pybind11::dict& dataContainer_ref() { return *_dataContainerPtr; }"
+                "  ::pybind11::dict& dataContainer_ref() { return *_dataContainerPtr; }",
             )
             pycv_h.write_text(patched)
             print("  Patched PythonCVInterface.h")
@@ -431,8 +435,8 @@ class PlumedBuildHook(BuildHookInterface):
                 "    py::gil_scoped_acquire gil;\n    //Loading the python module",
                 "    py::gil_scoped_acquire gil;\n"
                 "    _dataContainerPtr = std::make_unique<py::dict>();\n"
-                "    py::module::import(\"plumedCommunications\");\n"
-                "    //Loading the python module"
+                '    py::module::import("plumedCommunications");\n'
+                "    //Loading the python module",
             )
             pycv_cpp.write_text(patched)
             print("  Patched PythonCVInterface.cpp")
@@ -444,12 +448,12 @@ class PlumedBuildHook(BuildHookInterface):
             patched = content.replace(
                 '.def_readwrite("data",&PLMD::pycv::PythonCVInterface::dataContainer,',
                 '.def_property("data",\n'
-                '    [](PLMD::pycv::PythonCVInterface* self) -> py::dict& {\n'
-                '      return self->dataContainer_ref();\n'
-                '    },\n'
-                '    [](PLMD::pycv::PythonCVInterface* self, py::dict& val) {\n'
-                '      *(self->_dataContainerPtr) = val;\n'
-                '    },'
+                "    [](PLMD::pycv::PythonCVInterface* self) -> py::dict& {\n"
+                "      return self->dataContainer_ref();\n"
+                "    },\n"
+                "    [](PLMD::pycv::PythonCVInterface* self, py::dict& val) {\n"
+                "      *(self->_dataContainerPtr) = val;\n"
+                "    },",
             )
             embed_cpp.write_text(patched)
             print("  Patched PlumedPythonEmbeddedModule.cpp")
@@ -461,8 +465,8 @@ class PlumedBuildHook(BuildHookInterface):
             patched = content.replace(
                 "    py::gil_scoped_acquire gil;\n    //Loading the python module",
                 "    py::gil_scoped_acquire gil;\n"
-                "    py::module::import(\"plumedCommunications\");\n"
-                "    //Loading the python module"
+                '    py::module::import("plumedCommunications");\n'
+                "    //Loading the python module",
             )
             pyfn_cpp.write_text(patched)
             print("  Patched PythonFunction.cpp")
@@ -481,7 +485,7 @@ class PlumedBuildHook(BuildHookInterface):
         src_dir : Path
             Source directory for module installation.
         """
-        cmake_content = '''cmake_minimum_required(VERSION 3.15...3.27)
+        cmake_content = """cmake_minimum_required(VERSION 3.15...3.27)
 project(pycv_hillclimber VERSION 1.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 
@@ -540,7 +544,7 @@ target_link_libraries(plumedCommunications PRIVATE pybind11::headers)
 target_link_libraries(plumedCommunications PUBLIC PythonCVInterface)
 
 install(TARGETS plumedCommunications DESTINATION ${PYCV_MODULE_DESTINATION})
-'''
+"""
         cmake_file = build_dir / "CMakeLists.txt"
         cmake_file.write_text(cmake_content)
 
