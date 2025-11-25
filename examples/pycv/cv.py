@@ -1,6 +1,6 @@
 import jax
 import jax.numpy as jnp
-import plumed.plumedCommunications as PLMD
+import plumedCommunications as PLMD
 
 plumedInit = {"Value": PLMD.defaults.COMPONENT}
 
