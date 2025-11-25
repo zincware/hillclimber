@@ -201,7 +201,7 @@ class PlumedBuildHook(BuildHookInterface):
                 include_dirs=[str(include_dir)],
                 library_dirs=[str(lib_dir)],
                 libraries=["plumedKernel"],
-                runtime_library_dirs=[str(lib_dir)]
+                runtime_library_dirs=["$ORIGIN/_lib/lib"]
                 if sys.platform.startswith("linux")
                 else [],
                 extra_compile_args=[
@@ -514,6 +514,14 @@ target_link_libraries(PythonCVInterface PRIVATE pybind11::module)
 target_link_libraries(PythonCVInterface PUBLIC ${PLUMED_KERNEL_LIB})
 set_target_properties(PythonCVInterface PROPERTIES PREFIX "")
 
+# PythonCVInterface lives in same dir as libplumedKernel
+# Use platform-appropriate RPATH ($ORIGIN on Linux, @loader_path on macOS)
+if(UNIX AND NOT APPLE)
+  set_target_properties(PythonCVInterface PROPERTIES
+    INSTALL_RPATH "$ORIGIN"
+    BUILD_WITH_INSTALL_RPATH TRUE)
+endif()
+
 # On macOS, allow undefined symbols (they'll be resolved from Python at load time)
 if(APPLE)
   target_link_options(PythonCVInterface PRIVATE "-undefined" "dynamic_lookup")
@@ -530,6 +538,14 @@ install(TARGETS PythonCVInterface DESTINATION ${PYCV_LIB_DESTINATION})
 pybind11_add_module(plumedCommunications src/PlumedPythonEmbeddedModule.cpp)
 target_link_libraries(plumedCommunications PRIVATE pybind11::headers)
 target_link_libraries(plumedCommunications PUBLIC PythonCVInterface)
+
+# plumedCommunications is at root, needs to find libs in plumed/_lib/lib/
+# Use platform-appropriate RPATH (passed via CMAKE_INSTALL_RPATH)
+if(UNIX AND NOT APPLE)
+  set_target_properties(plumedCommunications PROPERTIES
+    INSTALL_RPATH "${CMAKE_INSTALL_RPATH}"
+    BUILD_WITH_INSTALL_RPATH TRUE)
+endif()
 
 install(TARGETS plumedCommunications DESTINATION ${PYCV_MODULE_DESTINATION})
 """
