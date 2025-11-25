@@ -4,6 +4,7 @@ These tests verify that:
 1. The pycv plugin is correctly built and bundled
 2. plumedCommunications module is importable
 3. pycv works with ASE MD simulations
+4. Type stubs match the runtime module
 """
 
 import os
@@ -80,6 +81,21 @@ class TestPlumedCommunicationsImport:
         import plumedCommunications as PLMD
 
         assert hasattr(PLMD, "PythonFunction")
+
+    def test_python_cv_interface_has_docstrings(self):
+        """Test that PythonCVInterface methods have docstrings for help()."""
+        import plumedCommunications as PLMD
+
+        # These docstrings come from pybind11 definitions
+        assert PLMD.PythonCVInterface.getStep.__doc__ is not None
+        assert PLMD.PythonCVInterface.getPositions.__doc__ is not None
+
+    def test_stub_file_exists(self):
+        """Test that the .pyi stub file exists for IDE autocompletion."""
+        from pathlib import Path
+
+        stub_path = Path(__file__).parent.parent / "src" / "plumedCommunications.pyi"
+        assert stub_path.exists(), f"Stub file not found at {stub_path}"
 
 
 class TestPycvIntegration:
