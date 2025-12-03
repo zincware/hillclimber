@@ -1,6 +1,9 @@
 """Tests for DistanceCV using the new API with VirtualAtom and flatten/pairwise parameters."""
 
 import ase
+import molify
+import numpy as np
+from PIL import Image
 
 import hillclimber as pn
 
@@ -190,3 +193,44 @@ def test_distance_cv_no_virtual_sites(small_ethanol_water):
     expected = ["d: DISTANCE ATOMS=1,2,3,4,5,6,7,8,9,19,20,21"]
     assert plumed_str == expected
     assert labels == ["d"]
+
+
+def test_get_img_with_failed_bond_determination():
+    """Test that get_img does not fail when molify.ase2rdkit cannot determine bonds.
+
+    This test verifies that get_img handles the case where bonds cannot be determined
+    due to jittered positions without connectivity information.
+    """
+    # Create atoms from SMILES
+    atoms = molify.smiles2atoms("CCO")
+
+    # Remove connectivity so molify.ase2rdkit has to infer bonds
+    atoms.info.pop("connectivity")
+
+    # Jitter positions enough to make bond determination fail
+    np.random.seed(42)
+    atoms.positions += np.random.uniform(-5, 5, atoms.positions.shape)
+
+    # Verify that molify.ase2rdkit fails with these jittered positions
+    try:
+        molify.ase2rdkit(atoms)
+        assert False, "Expected molify.ase2rdkit to fail with jittered positions"
+    except ValueError:
+        pass  # Expected failure
+
+    # Create a DistanceCV with IndexSelector
+    x1_selector = pn.IndexSelector(indices=[[0, 1, 2]])
+    x2_selector = pn.IndexSelector(indices=[[3, 4, 5]])
+
+    distance_cv = pn.DistanceCV(
+        x1=x1_selector,
+        x2=x2_selector,
+        prefix="d",
+        flatten=True,
+    )
+
+    # This should NOT raise an error
+    img = distance_cv.get_img(atoms)
+
+    # Check that we get a PIL Image
+    assert isinstance(img, Image.Image)

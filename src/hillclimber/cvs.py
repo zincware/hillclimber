@@ -66,7 +66,12 @@ class _BasePlumedCV(CollectiveVariable):
             A PIL Image object of the visualization.
         """
         highlight_map = self._get_atom_highlights(atoms, **kwargs)
-        mol = molify.ase2rdkit(atoms)
+        try:
+            mol = molify.ase2rdkit(atoms)
+        except ValueError:
+            # Bond determination failed (e.g., jittered positions without connectivity)
+            # Return a placeholder image
+            return Image.new("RGB", (400, 400), color=(255, 255, 255))
 
         if not highlight_map:
             return Draw.MolsToGridImage(
