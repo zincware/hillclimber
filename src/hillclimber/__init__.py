@@ -10,6 +10,7 @@ from hillclimber.cvs import (
 )
 from hillclimber.metadynamics import MetadBias, MetaDynamicsConfig, MetaDynamicsModel
 from hillclimber.opes import OPESBias, OPESConfig, OPESModel
+from hillclimber.pycv import PyCV
 from hillclimber.selectors import IndexSelector, SMARTSSelector, SMILESSelector
 from hillclimber.virtual_atoms import VirtualAtom
 
@@ -30,6 +31,7 @@ __all__ = [
     "OPESModel",
     "OPESBias",
     "OPESConfig",
+    "PyCV",
     "RestraintBias",
     "UpperWallBias",
     "LowerWallBias",
