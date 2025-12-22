@@ -7,8 +7,6 @@ These tests verify that:
 4. Full output matches expected format (per CLAUDE.md requirements)
 """
 
-import sys
-
 import numpy as np
 import pytest
 from ase import Atoms
@@ -215,7 +213,9 @@ class TestPyCVWithMetaDynamics:
         result = model.to_plumed(small_ethanol_water)
 
         # Check that LOAD command is present
-        assert any("LOAD FILE=" in line and "PythonCVInterface" in line for line in result)
+        assert any(
+            "LOAD FILE=" in line and "PythonCVInterface" in line for line in result
+        )
 
         # Check PYCVINTERFACE command
         assert any("d_py: PYCVINTERFACE ATOMS=1,2" in line for line in result)

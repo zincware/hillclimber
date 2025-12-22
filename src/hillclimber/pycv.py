@@ -15,7 +15,6 @@ import dataclasses
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 import numpy as np
 import numpy.typing as npt
@@ -23,9 +22,6 @@ from ase import Atoms
 from PIL import Image
 
 from hillclimber.interfaces import AtomSelector
-
-if TYPE_CHECKING:
-    pass
 
 
 @dataclass
