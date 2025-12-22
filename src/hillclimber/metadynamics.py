@@ -11,6 +11,7 @@ from hillclimber.interfaces import (
     NodeWithCalculator,
     PlumedGenerator,
 )
+from hillclimber.pycv import PyCV
 
 
 @dataclasses.dataclass
@@ -167,9 +168,22 @@ class MetaDynamicsModel(zntrack.Node, NodeWithCalculator):
         directory = Path(directory)
         directory.mkdir(parents=True, exist_ok=True)
 
-        lines = self.to_plumed(self.data[self.data_idx])
-        # replace FILE= with f"FILE={directory}/" inside config
-        lines = [line.replace("FILE=", f"FILE={directory}/") for line in lines]
+        atoms = self.data[self.data_idx]
+
+        # Write adapter scripts for any PyCV instances
+        self._write_pycv_adapter_scripts(directory, atoms)
+
+        lines = self.to_plumed(atoms)
+        # Replace FILE= with FILE={directory}/ for output files (HILLS, COLVAR, etc.)
+        # but NOT for LOAD commands (which have absolute paths to plugins)
+        processed_lines = []
+        for line in lines:
+            if line.startswith("LOAD FILE="):
+                # Don't modify LOAD commands - they have absolute paths
+                processed_lines.append(line)
+            else:
+                processed_lines.append(line.replace("FILE=", f"FILE={directory}/"))
+        lines = processed_lines
 
         # Write plumed input file
         with (directory / "plumed.dat").open("w") as file:
@@ -180,12 +194,74 @@ class MetaDynamicsModel(zntrack.Node, NodeWithCalculator):
 
         return NonOverwritingPlumed(
             calc=self.model.get_calculator(directory=directory),
-            atoms=self.data[self.data_idx],
+            atoms=atoms,
             input=lines,
             timestep=float(self.timestep * ase.units.fs),
             kT=float(kT),
             log=(directory / "plumed.log").as_posix(),
         )
+
+    def _write_pycv_adapter_scripts(
+        self, directory: Path, atoms: ase.Atoms
+    ) -> list[Path]:
+        """Write adapter scripts for all PyCV instances.
+
+        Parameters
+        ----------
+        directory : Path
+            Directory to write scripts to.
+        atoms : ase.Atoms
+            Reference structure for atom selection.
+
+        Returns
+        -------
+        list[Path]
+            Paths to written adapter scripts.
+        """
+        scripts = []
+
+        # Collect all PyCV instances from bias_cvs
+        for bias_cv in self.bias_cvs:
+            if isinstance(bias_cv.cv, PyCV):
+                script_path = self._write_single_pycv_script(
+                    bias_cv.cv, directory, atoms
+                )
+                scripts.append(script_path)
+
+        return scripts
+
+    def _write_single_pycv_script(
+        self, pycv: PyCV, directory: Path, atoms: ase.Atoms
+    ) -> Path:
+        """Write adapter script for a single PyCV instance.
+
+        Parameters
+        ----------
+        pycv : PyCV
+            The PyCV instance.
+        directory : Path
+            Directory to write to.
+        atoms : ase.Atoms
+            Reference structure.
+
+        Returns
+        -------
+        Path
+            Path to written script.
+        """
+        cv_class = type(pycv)
+
+        return pycv.write_adapter_script(
+            directory=directory,
+            atoms=atoms,
+            cv_class_module=cv_class.__module__,
+            cv_class_name=cv_class.__name__,
+            cv_init_args=pycv.get_init_args(),
+        )
+
+    def _has_pycv(self) -> bool:
+        """Check if any bias CV is a PyCV instance."""
+        return any(isinstance(bias_cv.cv, PyCV) for bias_cv in self.bias_cvs)
 
     def to_plumed(self, atoms: ase.Atoms) -> list[str]:
         """Generate PLUMED input string for the metadynamics model."""
@@ -209,6 +285,13 @@ class MetaDynamicsModel(zntrack.Node, NodeWithCalculator):
         plumed_lines.append(
             f"UNITS LENGTH=A TIME={1 / 1000} ENERGY={ase.units.mol / ase.units.kJ}"
         )
+
+        # Add LOAD command for pycv plugin if any PyCV instances are present
+        if self._has_pycv():
+            import plumed
+
+            pycv_path = plumed.get_pycv_path()
+            plumed_lines.append(f"LOAD FILE={pycv_path}")
 
         for bias_cv in self.bias_cvs:
             labels, cv_str = bias_cv.cv.to_plumed(atoms)
