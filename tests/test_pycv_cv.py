@@ -344,9 +344,7 @@ class TestPyCVIntegration:
             model=MockModel(),  # type: ignore
         )
 
-        # Add tmp_path to sys.path so adapter script can be imported
-        sys.path.insert(0, str(tmp_path))
-
+        # get_calculator automatically adds directory to sys.path for PyCV imports
         calc = model.get_calculator(directory=tmp_path)
 
         # Verify files were created

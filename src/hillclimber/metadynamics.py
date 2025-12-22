@@ -1,4 +1,5 @@
 import dataclasses
+import sys
 import typing as t
 from pathlib import Path
 
@@ -189,6 +190,13 @@ class MetaDynamicsModel(zntrack.Node, NodeWithCalculator):
         with (directory / "plumed.dat").open("w") as file:
             for line in lines:
                 file.write(line + "\n")
+
+        # Add directory to sys.path so PLUMED can import PyCV adapter scripts
+        # This is required because PLUMED's pycv plugin imports Python modules
+        # and needs to find the generated _pycv_*.py adapter scripts
+        directory_str = str(directory.resolve())
+        if directory_str not in sys.path:
+            sys.path.insert(0, directory_str)
 
         kT = ase.units.kB * self.config.temp
 
