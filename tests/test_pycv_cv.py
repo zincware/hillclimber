@@ -39,6 +39,40 @@ class SimpleDistanceCV(PyCV):
 class TestPyCVBasic:
     """Basic PyCV functionality tests."""
 
+    def test_pycv_with_atoms_none_selects_all_atoms(self):
+        """Test PyCV with atoms=None selects all atoms."""
+        cv = SimpleDistanceCV(atoms=None, prefix="d_all")
+
+        atoms = Atoms("Ar3", positions=[[0, 0, 0], [3.8, 0, 0], [7.6, 0, 0]])
+
+        labels, commands = cv.to_plumed(atoms)
+
+        expected = [
+            "d_all: PYCVINTERFACE ATOMS=1,2,3 IMPORT=_pycv_d_all",
+        ]
+
+        assert labels == ["d_all"]
+        assert commands == expected
+
+    def test_pycv_with_atoms_none_larger_system(self):
+        """Test PyCV with atoms=None on a larger system."""
+        cv = SimpleDistanceCV(atoms=None, prefix="d_full")
+
+        atoms = Atoms("C2H6", positions=[
+            [0, 0, 0], [1.54, 0, 0],  # C atoms
+            [0, 1, 0], [0, -1, 0], [0, 0, 1],  # H on first C
+            [1.54, 1, 0], [1.54, -1, 0], [1.54, 0, 1],  # H on second C
+        ])
+
+        labels, commands = cv.to_plumed(atoms)
+
+        expected = [
+            "d_full: PYCVINTERFACE ATOMS=1,2,3,4,5,6,7,8 IMPORT=_pycv_d_full",
+        ]
+
+        assert labels == ["d_full"]
+        assert commands == expected
+
     def test_pycv_with_index_list(self):
         """Test PyCV with direct list of atom indices."""
         cv = SimpleDistanceCV(atoms=[0, 1], prefix="d_simple")
@@ -95,6 +129,14 @@ class TestPyCVBasic:
 
 class TestPyCVInitArgs:
     """Tests for get_init_args serialization."""
+
+    def test_init_args_with_none(self):
+        """Test get_init_args with atoms=None."""
+        cv = SimpleDistanceCV(atoms=None, prefix="d_all")
+
+        init_args = cv.get_init_args()
+
+        assert init_args == "atoms=None, prefix='d_all'"
 
     def test_init_args_with_list(self):
         """Test get_init_args with list of indices."""
