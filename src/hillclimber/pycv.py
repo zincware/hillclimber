@@ -33,8 +33,9 @@ class PyCV(ABC):
 
     Parameters
     ----------
-    atoms : AtomSelector | list[int]
-        Atoms to pass to the CV. Either an AtomSelector or direct indices (0-based).
+    atoms : AtomSelector | list[int] | None
+        Atoms to pass to the CV. Either an AtomSelector, direct indices (0-based),
+        or None to select all atoms.
     prefix : str
         Label prefix for PLUMED commands.
 
@@ -75,7 +76,7 @@ class PyCV(ABC):
     the CV can only be printed/monitored.
     """
 
-    atoms: AtomSelector | list[int]
+    atoms: AtomSelector | list[int] | None
     prefix: str
 
     @abstractmethod
@@ -191,7 +192,10 @@ class PyCV(ABC):
         list[int]
             Flat list of 0-based atom indices.
         """
-        if isinstance(self.atoms, list):
+        if self.atoms is None:
+            # None means all atoms
+            return list(range(len(atoms)))
+        elif isinstance(self.atoms, list):
             return self.atoms
         else:
             # AtomSelector returns list[list[int]], flatten it
@@ -227,7 +231,9 @@ class PyCV(ABC):
             Python code string for initializing this PyCV instance.
         """
         # Serialize atoms argument
-        if isinstance(self.atoms, list):
+        if self.atoms is None:
+            atoms_repr = "None"
+        elif isinstance(self.atoms, list):
             atoms_repr = repr(self.atoms)
         else:
             # AtomSelector - use dataclass fields for serialization
