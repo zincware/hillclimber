@@ -33,6 +33,32 @@ class SimpleDistanceCV(PyCV):
         return dist, grad
 
 
+class CellPbcValidatingCV(PyCV):
+    """A CV that validates cell and pbc are properly set.
+
+    Returns 1.0 if cell and pbc are valid, raises RuntimeError otherwise.
+    This is used to verify that PLUMED correctly passes cell/pbc to PyCV.
+    """
+
+    def compute(self, atoms: Atoms) -> tuple[float, np.ndarray]:
+        """Validate cell and pbc, return 1.0 if valid."""
+        cell = atoms.get_cell()
+        pbc = atoms.get_pbc()
+
+        # Check that cell is set (non-zero for periodic systems)
+        cell_volume = cell.volume
+        if cell_volume < 1e-10:
+            raise RuntimeError(f"Cell not properly set: volume={cell_volume}")
+
+        # Check that pbc is set to True for all dimensions
+        if not all(pbc):
+            raise RuntimeError(f"PBC not properly set: pbc={pbc}")
+
+        # Return a constant value with zero gradients
+        grad = np.zeros((len(atoms), 3))
+        return 1.0, grad
+
+
 # --- Unit Tests ---
 
 
@@ -345,3 +371,67 @@ class TestPyCVIntegration:
         assert "[O]" in content
         assert "_CV_INSTANCE = SimpleDistanceCV" in content
         assert "plumedCalculate" in content
+
+    def test_pycv_cell_and_pbc_passed_from_plumed(self, tmp_path):
+        """Integration test: Verify cell and pbc are correctly passed to PyCV.compute().
+
+        Uses CellPbcValidatingCV which raises RuntimeError if cell/pbc are not set.
+        If the MD simulation completes without error, cell/pbc were correctly passed.
+        """
+        import ase
+        import ase.units
+        from ase.calculators.lj import LennardJones
+        from ase.md.langevin import Langevin
+
+        # Create periodic Argon system with explicit cell and pbc
+        atoms = ase.Atoms(
+            "Ar4",
+            positions=[
+                [0.0, 0.0, 0.0],
+                [3.8, 0.0, 0.0],
+                [0.0, 3.8, 0.0],
+                [3.8, 3.8, 0.0],
+            ],
+            cell=[10.0, 10.0, 10.0],
+            pbc=True,
+        )
+
+        # Use CellPbcValidatingCV which validates cell/pbc at runtime
+        # If cell/pbc are not properly set, compute() raises RuntimeError
+        cv = CellPbcValidatingCV(atoms=[0, 1, 2, 3], prefix="cell_validator")
+
+        bias = hc.MetadBias(cv=cv, sigma=0.1, grid_min=0.0, grid_max=2.0, grid_bin=50)
+
+        config = hc.MetaDynamicsConfig(
+            height=0.01,
+            pace=5,
+            temp=120.0,
+        )
+
+        class MockModel:
+            def get_calculator(self, **kwargs):
+                return LennardJones(sigma=3.4, epsilon=0.0104, rc=10.0, smooth=True)
+
+        model = hc.MetaDynamicsModel(
+            config=config,
+            data=[atoms],
+            bias_cvs=[bias],
+            model=MockModel(),  # type: ignore
+        )
+
+        calc = model.get_calculator(directory=tmp_path)
+        atoms.calc = calc
+
+        dyn = Langevin(
+            atoms=atoms,
+            timestep=2.0 * ase.units.fs,
+            temperature_K=120.0,
+            friction=0.01,
+        )
+
+        # Run MD simulation - if cell/pbc are not passed, CellPbcValidatingCV
+        # will raise RuntimeError and the test will fail
+        dyn.run(steps=10)
+
+        # Verify simulation completed successfully
+        assert (tmp_path / "HILLS").exists()
