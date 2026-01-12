@@ -306,8 +306,14 @@ def plumedCalculate(action: PLMD.PythonCVInterface):
     # Get positions from PLUMED (shape: n_atoms x 3)
     positions = action.getPositions()
 
-    # Reconstruct ASE Atoms object with species info
-    atoms = Atoms(symbols=_SYMBOLS, positions=positions)
+    # Get simulation cell from PLUMED (shape: 3x3)
+    cell = action.getPbc().getBox()
+
+    # Determine pbc from cell: a dimension is periodic if its cell vector is non-zero
+    pbc = [np.linalg.norm(cell[i]) > 1e-10 for i in range(3)]
+
+    # Reconstruct ASE Atoms object with species info, cell, and pbc
+    atoms = Atoms(symbols=_SYMBOLS, positions=positions, cell=cell, pbc=pbc)
 
     # Call user's compute method
     result = _CV_INSTANCE.compute(atoms)
