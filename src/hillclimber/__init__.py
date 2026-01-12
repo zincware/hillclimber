@@ -17,6 +17,9 @@ from hillclimber.selectors import (
     IndexSelector,
     SMARTSSelector,
     SMILESSelector,
+    _AtomIndexedSelector,
+    _CombinedSelector,
+    _GroupIndexedSelector,
 )
 from hillclimber.virtual_atoms import VirtualAtom
 
@@ -32,6 +35,9 @@ __all__ = [
     "IndexSelector",
     "SMILESSelector",
     "SMARTSSelector",
+    "_GroupIndexedSelector",
+    "_AtomIndexedSelector",
+    "_CombinedSelector",
     "VirtualAtom",
     "MetaDynamicsModel",
     "MetadBias",

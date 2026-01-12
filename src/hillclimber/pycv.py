@@ -247,6 +247,80 @@ class PyCV(ABC):
         all_symbols = atoms.get_chemical_symbols()
         return [all_symbols[i] for i in indices]
 
+    def _is_selector(self, value: object) -> bool:
+        """Check if value is an AtomSelector (duck typing).
+
+        Uses duck typing since AtomSelector is a Protocol without @runtime_checkable.
+        """
+        return dataclasses.is_dataclass(value) and hasattr(value, "select")
+
+    def _serialize_selector(self, selector: AtomSelector) -> str:
+        """Recursively serialize an AtomSelector to Python code.
+
+        Parameters
+        ----------
+        selector : AtomSelector
+            The selector to serialize.
+
+        Returns
+        -------
+        str
+            Python code string that reconstructs the selector.
+        """
+        selector_class = type(selector).__name__
+
+        if not dataclasses.is_dataclass(selector):
+            raise ValueError(
+                f"Cannot serialize AtomSelector of type {selector_class}. "
+                "AtomSelector must be a dataclass."
+            )
+
+        fields = dataclasses.fields(selector)
+        args_parts = []
+
+        for f in fields:
+            value = getattr(selector, f.name)
+            # Check if field value is an AtomSelector (for nested selectors)
+            if self._is_selector(value):
+                value_repr = self._serialize_selector(value)
+            elif isinstance(value, list) and value and self._is_selector(value[0]):
+                # List of selectors (e.g., _CombinedSelector.selectors)
+                value_repr = "[" + ", ".join(
+                    self._serialize_selector(s) for s in value
+                ) + "]"
+            else:
+                value_repr = repr(value)
+            args_parts.append(f"{f.name}={value_repr}")
+
+        return f"{selector_class}({', '.join(args_parts)})"
+
+    def _get_all_selector_classes(self, selector: AtomSelector) -> set[str]:
+        """Recursively collect all selector class names from a selector tree.
+
+        Parameters
+        ----------
+        selector : AtomSelector
+            The root selector.
+
+        Returns
+        -------
+        set[str]
+            Set of all selector class names used.
+        """
+        classes = {type(selector).__name__}
+
+        if dataclasses.is_dataclass(selector):
+            for f in dataclasses.fields(selector):
+                value = getattr(selector, f.name)
+                if self._is_selector(value):
+                    classes.update(self._get_all_selector_classes(value))
+                elif isinstance(value, list):
+                    for item in value:
+                        if self._is_selector(item):
+                            classes.update(self._get_all_selector_classes(item))
+
+        return classes
+
     def get_init_args(self) -> str:
         """Generate Python code to reconstruct this PyCV's initialization arguments.
 
@@ -264,21 +338,8 @@ class PyCV(ABC):
         elif isinstance(self.atoms, list):
             atoms_repr = repr(self.atoms)
         else:
-            # AtomSelector - use dataclass fields for serialization
-            selector = self.atoms
-            selector_class = type(selector).__name__
-
-            if dataclasses.is_dataclass(selector):
-                fields = dataclasses.fields(selector)
-                args = ", ".join(
-                    f"{f.name}={repr(getattr(selector, f.name))}" for f in fields
-                )
-                atoms_repr = f"{selector_class}({args})"
-            else:
-                raise ValueError(
-                    f"Cannot serialize AtomSelector of type {selector_class}. "
-                    "AtomSelector must be a dataclass."
-                )
+            # AtomSelector - use recursive serialization for nested selectors
+            atoms_repr = self._serialize_selector(self.atoms)
 
         return f"atoms={atoms_repr}, prefix={repr(self.prefix)}"
 
@@ -312,9 +373,11 @@ class PyCV(ABC):
         # Build additional imports for AtomSelector if needed
         selector_import = ""
         if self.atoms is not None and not isinstance(self.atoms, list):
-            # AtomSelector is being used - need to import it
-            selector_class = type(self.atoms).__name__
-            selector_import = f"from hillclimber import {selector_class}\n"
+            # AtomSelector is being used - need to import all selector classes
+            selector_classes = self._get_all_selector_classes(self.atoms)
+            selector_import = (
+                f"from hillclimber import {', '.join(sorted(selector_classes))}\n"
+            )
 
         return f'''"""Auto-generated PYCV adapter script for {self.prefix}.
 

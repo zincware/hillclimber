@@ -178,6 +178,63 @@ class TestPyCVInitArgs:
             == "atoms=SMARTSSelector(pattern='[OH]', hydrogens='include'), prefix='d_smarts'"
         )
 
+    def test_init_args_with_indexed_selector(self):
+        """Test get_init_args with indexed selector (selector[0])."""
+        base_selector = hc.IndexSelector(indices=[[0, 1], [2, 3]])
+        cv = SimpleDistanceCV(
+            atoms=base_selector[0],
+            prefix="d_indexed",
+        )
+
+        init_args = cv.get_init_args()
+
+        expected = (
+            "atoms=_GroupIndexedSelector("
+            "selector=IndexSelector(indices=[[0, 1], [2, 3]]), "
+            "group_index=0), "
+            "prefix='d_indexed'"
+        )
+        assert init_args == expected
+
+    def test_init_args_with_atom_indexed_selector(self):
+        """Test get_init_args with double-indexed selector (selector[0][0])."""
+        base_selector = hc.IndexSelector(indices=[[0, 1, 2], [3, 4, 5]])
+        cv = SimpleDistanceCV(
+            atoms=base_selector[0][0],
+            prefix="d_atom_indexed",
+        )
+
+        init_args = cv.get_init_args()
+
+        expected = (
+            "atoms=_AtomIndexedSelector("
+            "group_selector=_GroupIndexedSelector("
+            "selector=IndexSelector(indices=[[0, 1, 2], [3, 4, 5]]), "
+            "group_index=0), "
+            "atom_index=0), "
+            "prefix='d_atom_indexed'"
+        )
+        assert init_args == expected
+
+    def test_init_args_with_combined_selector(self):
+        """Test get_init_args with combined selector (sel1 + sel2)."""
+        sel1 = hc.IndexSelector(indices=[[0, 1]])
+        sel2 = hc.IndexSelector(indices=[[2, 3]])
+        cv = SimpleDistanceCV(
+            atoms=sel1 + sel2,
+            prefix="d_combined",
+        )
+
+        init_args = cv.get_init_args()
+
+        expected = (
+            "atoms=_CombinedSelector(selectors=["
+            "IndexSelector(indices=[[0, 1]]), "
+            "IndexSelector(indices=[[2, 3]])]), "
+            "prefix='d_combined'"
+        )
+        assert init_args == expected
+
 
 class TestPyCVAdapterScript:
     """Tests for adapter script generation."""
@@ -223,6 +280,49 @@ class TestPyCVAdapterScript:
 
         content = script_path.read_text()
         assert "_SYMBOLS = ['C', 'H', 'O']" in content
+
+    def test_adapter_script_with_indexed_selector(self, tmp_path):
+        """Test adapter script imports internal selector classes correctly."""
+        base_selector = hc.IndexSelector(indices=[[0, 1], [2, 3]])
+        cv = SimpleDistanceCV(atoms=base_selector[0], prefix="d_indexed")
+        atoms = Atoms("Ar4", positions=[[i, 0, 0] for i in range(4)])
+
+        script_path = cv.write_adapter_script(
+            directory=tmp_path,
+            atoms=atoms,
+            cv_class_module="tests.test_pycv_cv",
+            cv_class_name="SimpleDistanceCV",
+            cv_init_args=cv.get_init_args(),
+        )
+
+        content = script_path.read_text()
+
+        # Check that internal selector classes are imported
+        assert "_GroupIndexedSelector" in content
+        assert "IndexSelector" in content
+        assert "from hillclimber import" in content
+
+    def test_adapter_script_with_combined_selector(self, tmp_path):
+        """Test adapter script with combined selectors imports all needed classes."""
+        sel1 = hc.IndexSelector(indices=[[0, 1]])
+        sel2 = hc.ElementSelector(symbols=["O"])
+        cv = SimpleDistanceCV(atoms=sel1 + sel2, prefix="d_combined")
+        atoms = Atoms("ArArO", positions=[[0, 0, 0], [1, 0, 0], [2, 0, 0]])
+
+        script_path = cv.write_adapter_script(
+            directory=tmp_path,
+            atoms=atoms,
+            cv_class_module="tests.test_pycv_cv",
+            cv_class_name="SimpleDistanceCV",
+            cv_init_args=cv.get_init_args(),
+        )
+
+        content = script_path.read_text()
+
+        # Check that all selector classes are imported
+        assert "_CombinedSelector" in content
+        assert "IndexSelector" in content
+        assert "ElementSelector" in content
 
 
 class TestPyCVWithMetaDynamics:
