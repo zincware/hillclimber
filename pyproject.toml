@@ -34,6 +34,7 @@ dev = [
     "jax>=0.8.1",
     "pybind11>=3.0.1",
     "pytest>=8.4.1",
+    "ipsuite>=0.2.8",
 ]
 
 [project.scripts]
