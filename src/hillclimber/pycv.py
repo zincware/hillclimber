@@ -34,19 +34,48 @@ class PyCV(ABC):
     Parameters
     ----------
     atoms : AtomSelector | list[int] | None
-        Atoms to pass to the CV. Either an AtomSelector, direct indices (0-based),
-        or None to select all atoms.
+        Atom selection for the CV. Accepts:
+
+        - ``list[int]``: Direct 0-based atom indices (e.g., ``[0, 1, 2]``)
+        - ``None``: Select all atoms in the system
+        - ``AtomSelector``: Dynamic selection using selectors like
+          ``IndexSelector``, ``ElementSelector``, ``HeavyAtomSelector``,
+          ``SMARTSSelector``, etc.
+
     prefix : str
         Label prefix for PLUMED commands.
 
+    Attributes
+    ----------
+    atoms : AtomSelector | list[int] | None
+        The original atom selection specification (selector, list, or None).
+        Access this in ``compute()`` via ``self.atoms`` if needed.
+
     Examples
     --------
+    Using direct indices:
+
+    >>> cv = MyDistanceCV(atoms=[0, 1], prefix="dist")
+
+    Using all atoms:
+
+    >>> cv = MyDistanceCV(atoms=None, prefix="all")
+
+    Using a selector:
+
+    >>> cv = MyDistanceCV(atoms=hc.HeavyAtomSelector(), prefix="heavy")
+    >>> cv = MyDistanceCV(atoms=hc.ElementSelector(symbols=["C", "O"]), prefix="co")
+    >>> cv = MyDistanceCV(atoms=hc.SMARTSSelector(pattern="[OH]"), prefix="oh")
+
+    Full example:
+
     >>> import hillclimber as hc
     >>> import numpy as np
     >>> from ase import Atoms
     >>>
     >>> class MyDistanceCV(hc.PyCV):
     ...     def compute(self, atoms: Atoms) -> tuple[float, np.ndarray]:
+    ...         # 'atoms' contains ONLY the selected atoms
     ...         positions = atoms.get_positions()
     ...         diff = positions[1] - positions[0]
     ...         dist = np.sqrt(np.sum(diff**2))
@@ -54,26 +83,25 @@ class PyCV(ABC):
     ...         grad[0] = -diff / dist
     ...         grad[1] = diff / dist
     ...         return dist, grad
-    >>>
-    >>> cv = MyDistanceCV(
-    ...     atoms=hc.IndexSelector(indices=[[0, 1]]),
-    ...     prefix="my_dist"
-    ... )
 
     Resources
     ---------
+    - https://www.plumed.org/doc-master/user-doc/html/_p_y_c_v_i_n_t_e_r_f_a_c_e.html
     - https://www.plumed-tutorials.org/lessons/24/015/data/GAT_SAFE_README.html
-    - https://joss.theoj.org/papers/10.21105/joss.01773
 
     Notes
     -----
-    The `compute()` method receives an ASE Atoms object with positions in
-    the same units as specified in the PLUMED UNITS line. When used with
-    hillclimber's MetaDynamicsModel, this is Angstrom (ASE default units).
+    In your ``compute()`` method:
 
-    If `compute()` returns gradients, the CV can be used for biasing
-    (metadynamics, restraints, etc.). If only a scalar is returned,
-    the CV can only be printed/monitored.
+    - The ``atoms`` parameter is an ASE Atoms object containing **only the
+      selected atoms** (not the full system). Indices in this object start
+      at 0 and go up to ``len(atoms) - 1``.
+    - ``self.atoms`` is still your original selector/list/None if you need
+      to access it for any reason.
+    - Positions are in Angstrom (ASE units) when using hillclimber's
+      MetaDynamicsModel.
+    - If ``compute()`` returns gradients, the CV can be used for biasing.
+      If only a scalar is returned, the CV can only be printed/monitored.
     """
 
     atoms: AtomSelector | list[int] | None
@@ -219,6 +247,80 @@ class PyCV(ABC):
         all_symbols = atoms.get_chemical_symbols()
         return [all_symbols[i] for i in indices]
 
+    def _is_selector(self, value: object) -> bool:
+        """Check if value is an AtomSelector (duck typing).
+
+        Uses duck typing since AtomSelector is a Protocol without @runtime_checkable.
+        """
+        return dataclasses.is_dataclass(value) and hasattr(value, "select")
+
+    def _serialize_selector(self, selector: AtomSelector) -> str:
+        """Recursively serialize an AtomSelector to Python code.
+
+        Parameters
+        ----------
+        selector : AtomSelector
+            The selector to serialize.
+
+        Returns
+        -------
+        str
+            Python code string that reconstructs the selector.
+        """
+        selector_class = type(selector).__name__
+
+        if not dataclasses.is_dataclass(selector):
+            raise ValueError(
+                f"Cannot serialize AtomSelector of type {selector_class}. "
+                "AtomSelector must be a dataclass."
+            )
+
+        fields = dataclasses.fields(selector)
+        args_parts = []
+
+        for f in fields:
+            value = getattr(selector, f.name)
+            # Check if field value is an AtomSelector (for nested selectors)
+            if self._is_selector(value):
+                value_repr = self._serialize_selector(value)
+            elif isinstance(value, list) and value and self._is_selector(value[0]):
+                # List of selectors (e.g., _CombinedSelector.selectors)
+                value_repr = "[" + ", ".join(
+                    self._serialize_selector(s) for s in value
+                ) + "]"
+            else:
+                value_repr = repr(value)
+            args_parts.append(f"{f.name}={value_repr}")
+
+        return f"{selector_class}({', '.join(args_parts)})"
+
+    def _get_all_selector_classes(self, selector: AtomSelector) -> set[str]:
+        """Recursively collect all selector class names from a selector tree.
+
+        Parameters
+        ----------
+        selector : AtomSelector
+            The root selector.
+
+        Returns
+        -------
+        set[str]
+            Set of all selector class names used.
+        """
+        classes = {type(selector).__name__}
+
+        if dataclasses.is_dataclass(selector):
+            for f in dataclasses.fields(selector):
+                value = getattr(selector, f.name)
+                if self._is_selector(value):
+                    classes.update(self._get_all_selector_classes(value))
+                elif isinstance(value, list):
+                    for item in value:
+                        if self._is_selector(item):
+                            classes.update(self._get_all_selector_classes(item))
+
+        return classes
+
     def get_init_args(self) -> str:
         """Generate Python code to reconstruct this PyCV's initialization arguments.
 
@@ -236,21 +338,8 @@ class PyCV(ABC):
         elif isinstance(self.atoms, list):
             atoms_repr = repr(self.atoms)
         else:
-            # AtomSelector - use dataclass fields for serialization
-            selector = self.atoms
-            selector_class = type(selector).__name__
-
-            if dataclasses.is_dataclass(selector):
-                fields = dataclasses.fields(selector)
-                args = ", ".join(
-                    f"{f.name}={repr(getattr(selector, f.name))}" for f in fields
-                )
-                atoms_repr = f"{selector_class}({args})"
-            else:
-                raise ValueError(
-                    f"Cannot serialize AtomSelector of type {selector_class}. "
-                    "AtomSelector must be a dataclass."
-                )
+            # AtomSelector - use recursive serialization for nested selectors
+            atoms_repr = self._serialize_selector(self.atoms)
 
         return f"atoms={atoms_repr}, prefix={repr(self.prefix)}"
 
@@ -281,6 +370,15 @@ class PyCV(ABC):
         """
         symbols_repr = repr(symbols)
 
+        # Build additional imports for AtomSelector if needed
+        selector_import = ""
+        if self.atoms is not None and not isinstance(self.atoms, list):
+            # AtomSelector is being used - need to import all selector classes
+            selector_classes = self._get_all_selector_classes(self.atoms)
+            selector_import = (
+                f"from hillclimber import {', '.join(sorted(selector_classes))}\n"
+            )
+
         return f'''"""Auto-generated PYCV adapter script for {self.prefix}.
 
 This script bridges PLUMED's PYCVINTERFACE to the user's PyCV.compute() method.
@@ -289,7 +387,7 @@ Generated by hillclimber.
 import numpy as np
 import plumedCommunications as PLMD
 from ase import Atoms
-
+{selector_import}
 # Atomic symbols for reconstructing Atoms object
 _SYMBOLS = {symbols_repr}
 

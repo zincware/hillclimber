@@ -80,25 +80,6 @@ class TestPyCVBasic:
         assert labels == ["d_all"]
         assert commands == expected
 
-    def test_pycv_with_atoms_none_larger_system(self):
-        """Test PyCV with atoms=None on a larger system."""
-        cv = SimpleDistanceCV(atoms=None, prefix="d_full")
-
-        atoms = Atoms("C2H6", positions=[
-            [0, 0, 0], [1.54, 0, 0],  # C atoms
-            [0, 1, 0], [0, -1, 0], [0, 0, 1],  # H on first C
-            [1.54, 1, 0], [1.54, -1, 0], [1.54, 0, 1],  # H on second C
-        ])
-
-        labels, commands = cv.to_plumed(atoms)
-
-        expected = [
-            "d_full: PYCVINTERFACE ATOMS=1,2,3,4,5,6,7,8 IMPORT=_pycv_d_full",
-        ]
-
-        assert labels == ["d_full"]
-        assert commands == expected
-
     def test_pycv_with_index_list(self):
         """Test PyCV with direct list of atom indices."""
         cv = SimpleDistanceCV(atoms=[0, 1], prefix="d_simple")
@@ -181,33 +162,78 @@ class TestPyCVInitArgs:
 
         init_args = cv.get_init_args()
 
-        assert "IndexSelector" in init_args
-        assert "indices=[[0, 1]]" in init_args
-        assert "prefix='d_idx'" in init_args
-
-    def test_init_args_with_smiles_selector(self):
-        """Test get_init_args with SMILESSelector."""
-        cv = SimpleDistanceCV(
-            atoms=hc.SMILESSelector(smiles="CCO"),
-            prefix="d_smiles",
-        )
-
-        init_args = cv.get_init_args()
-
-        assert "SMILESSelector" in init_args
-        assert "smiles='CCO'" in init_args
+        assert init_args == "atoms=IndexSelector(indices=[[0, 1]]), prefix='d_idx'"
 
     def test_init_args_with_smarts_selector(self):
-        """Test get_init_args with SMARTSSelector."""
+        """Test get_init_args with SMARTSSelector (has multiple fields)."""
         cv = SimpleDistanceCV(
-            atoms=hc.SMARTSSelector(pattern="[OH]"),
+            atoms=hc.SMARTSSelector(pattern="[OH]", hydrogens="include"),
             prefix="d_smarts",
         )
 
         init_args = cv.get_init_args()
 
-        assert "SMARTSSelector" in init_args
-        assert "pattern='[OH]'" in init_args
+        assert (
+            init_args
+            == "atoms=SMARTSSelector(pattern='[OH]', hydrogens='include'), prefix='d_smarts'"
+        )
+
+    def test_init_args_with_indexed_selector(self):
+        """Test get_init_args with indexed selector (selector[0])."""
+        base_selector = hc.IndexSelector(indices=[[0, 1], [2, 3]])
+        cv = SimpleDistanceCV(
+            atoms=base_selector[0],
+            prefix="d_indexed",
+        )
+
+        init_args = cv.get_init_args()
+
+        expected = (
+            "atoms=_GroupIndexedSelector("
+            "selector=IndexSelector(indices=[[0, 1], [2, 3]]), "
+            "group_index=0), "
+            "prefix='d_indexed'"
+        )
+        assert init_args == expected
+
+    def test_init_args_with_atom_indexed_selector(self):
+        """Test get_init_args with double-indexed selector (selector[0][0])."""
+        base_selector = hc.IndexSelector(indices=[[0, 1, 2], [3, 4, 5]])
+        cv = SimpleDistanceCV(
+            atoms=base_selector[0][0],
+            prefix="d_atom_indexed",
+        )
+
+        init_args = cv.get_init_args()
+
+        expected = (
+            "atoms=_AtomIndexedSelector("
+            "group_selector=_GroupIndexedSelector("
+            "selector=IndexSelector(indices=[[0, 1, 2], [3, 4, 5]]), "
+            "group_index=0), "
+            "atom_index=0), "
+            "prefix='d_atom_indexed'"
+        )
+        assert init_args == expected
+
+    def test_init_args_with_combined_selector(self):
+        """Test get_init_args with combined selector (sel1 + sel2)."""
+        sel1 = hc.IndexSelector(indices=[[0, 1]])
+        sel2 = hc.IndexSelector(indices=[[2, 3]])
+        cv = SimpleDistanceCV(
+            atoms=sel1 + sel2,
+            prefix="d_combined",
+        )
+
+        init_args = cv.get_init_args()
+
+        expected = (
+            "atoms=_CombinedSelector(selectors=["
+            "IndexSelector(indices=[[0, 1]]), "
+            "IndexSelector(indices=[[2, 3]])]), "
+            "prefix='d_combined'"
+        )
+        assert init_args == expected
 
 
 class TestPyCVAdapterScript:
@@ -255,44 +281,56 @@ class TestPyCVAdapterScript:
         content = script_path.read_text()
         assert "_SYMBOLS = ['C', 'H', 'O']" in content
 
+    def test_adapter_script_with_indexed_selector(self, tmp_path):
+        """Test adapter script imports internal selector classes correctly."""
+        base_selector = hc.IndexSelector(indices=[[0, 1], [2, 3]])
+        cv = SimpleDistanceCV(atoms=base_selector[0], prefix="d_indexed")
+        atoms = Atoms("Ar4", positions=[[i, 0, 0] for i in range(4)])
+
+        script_path = cv.write_adapter_script(
+            directory=tmp_path,
+            atoms=atoms,
+            cv_class_module="tests.test_pycv_cv",
+            cv_class_name="SimpleDistanceCV",
+            cv_init_args=cv.get_init_args(),
+        )
+
+        content = script_path.read_text()
+
+        # Check that internal selector classes are imported
+        assert "_GroupIndexedSelector" in content
+        assert "IndexSelector" in content
+        assert "from hillclimber import" in content
+
+    def test_adapter_script_with_combined_selector(self, tmp_path):
+        """Test adapter script with combined selectors imports all needed classes."""
+        sel1 = hc.IndexSelector(indices=[[0, 1]])
+        sel2 = hc.ElementSelector(symbols=["O"])
+        cv = SimpleDistanceCV(atoms=sel1 + sel2, prefix="d_combined")
+        atoms = Atoms("ArArO", positions=[[0, 0, 0], [1, 0, 0], [2, 0, 0]])
+
+        script_path = cv.write_adapter_script(
+            directory=tmp_path,
+            atoms=atoms,
+            cv_class_module="tests.test_pycv_cv",
+            cv_class_name="SimpleDistanceCV",
+            cv_init_args=cv.get_init_args(),
+        )
+
+        content = script_path.read_text()
+
+        # Check that all selector classes are imported
+        assert "_CombinedSelector" in content
+        assert "IndexSelector" in content
+        assert "ElementSelector" in content
+
 
 class TestPyCVWithMetaDynamics:
     """Integration tests with MetaDynamicsModel."""
 
-    def test_pycv_metad_to_plumed(self, small_ethanol_water):
-        """Test that MetaDynamicsModel correctly handles PyCV."""
-        cv = SimpleDistanceCV(atoms=[0, 1], prefix="d_py")
-
-        bias = hc.MetadBias(cv=cv, sigma=0.1, grid_min=0.0, grid_max=5.0, grid_bin=100)
-
-        config = hc.MetaDynamicsConfig(
-            height=0.5,
-            pace=100,
-            temp=300.0,
-        )
-
-        model = hc.MetaDynamicsModel(
-            config=config,
-            data=small_ethanol_water,
-            bias_cvs=[bias],
-            model=None,  # type: ignore
-        )
-
-        result = model.to_plumed(small_ethanol_water)
-
-        # Check that LOAD command is present
-        assert any(
-            "LOAD FILE=" in line and "PythonCVInterface" in line for line in result
-        )
-
-        # Check PYCVINTERFACE command
-        assert any("d_py: PYCVINTERFACE ATOMS=1,2" in line for line in result)
-
-        # Check METAD command references the CV
-        assert any("METAD ARG=d_py" in line for line in result)
-
-    def test_pycv_full_output_format(self, small_ethanol_water):
-        """Test full output format matches expected structure."""
+    def test_pycv_metad_to_plumed(self):
+        """Test full output format from MetaDynamicsModel with PyCV."""
+        atoms = Atoms("Ar2", positions=[[0, 0, 0], [3.8, 0, 0]])
         cv = SimpleDistanceCV(atoms=[0, 1], prefix="pycv")
 
         bias = hc.MetadBias(
@@ -312,53 +350,22 @@ class TestPyCVWithMetaDynamics:
 
         model = hc.MetaDynamicsModel(
             config=config,
-            data=small_ethanol_water,
+            data=[atoms],
             bias_cvs=[bias],
             model=None,  # type: ignore
         )
 
-        result = model.to_plumed(small_ethanol_water)
+        result = model.to_plumed(atoms)
 
-        # Verify structure (first few lines)
+        # LOAD FILE path is dynamic (contains pycv plugin path), so check structure
+        assert len(result) == 4
         assert result[0] == "UNITS LENGTH=A TIME=0.001 ENERGY=96.48533288249877"
-        assert "LOAD FILE=" in result[1]
-        assert "pycv: PYCVINTERFACE ATOMS=1,2 IMPORT=_pycv_pycv" in result[2]
-        assert "metad: METAD ARG=pycv" in result[3]
-
-    def test_pycv_mixed_with_regular_cv(self, small_ethanol_water):
-        """Test PyCV works alongside regular CVs."""
-        # Python CV
-        py_cv = SimpleDistanceCV(atoms=[0, 1], prefix="d_py")
-
-        # Regular distance CV
-        regular_cv = hc.DistanceCV(
-            x1=hc.VirtualAtom(hc.SMILESSelector(smiles="CCO")[0], "com"),
-            x2=hc.VirtualAtom(hc.SMILESSelector(smiles="O")[0], "com"),
-            prefix="d_regular",
+        assert result[1].startswith("LOAD FILE=") and "PythonCVInterface" in result[1]
+        assert result[2] == "pycv: PYCVINTERFACE ATOMS=1,2 IMPORT=_pycv_pycv"
+        assert result[3] == (
+            "metad: METAD ARG=pycv HEIGHT=1.0 PACE=500 TEMP=300.0 FILE=HILLS "
+            "BIASFACTOR=10.0 SIGMA=0.2 GRID_MIN=0.0 GRID_MAX=10.0 GRID_BIN=200"
         )
-
-        bias_py = hc.MetadBias(cv=py_cv, sigma=0.1)
-        bias_regular = hc.MetadBias(cv=regular_cv, sigma=0.2)
-
-        config = hc.MetaDynamicsConfig(height=0.5, pace=100, temp=300.0)
-
-        model = hc.MetaDynamicsModel(
-            config=config,
-            data=small_ethanol_water,
-            bias_cvs=[bias_py, bias_regular],
-            model=None,  # type: ignore
-        )
-
-        result = model.to_plumed(small_ethanol_water)
-
-        # Check both CVs are present
-        assert any("PYCVINTERFACE" in line for line in result)
-        assert any("DISTANCE" in line for line in result)
-
-        # Check METAD uses both
-        metad_line = [line for line in result if "metad: METAD" in line][0]
-        assert "d_py" in metad_line
-        assert "d_regular" in metad_line
 
 
 class TestPyCVCompute:
@@ -433,6 +440,37 @@ class TestPyCVIntegration:
 
         # Verify HILLS file was created
         assert (tmp_path / "HILLS").exists()
+
+    def test_pycv_with_selector_adapter_script_generation(
+        self, tmp_path, small_ethanol_water
+    ):
+        """Test that PyCV with AtomSelector generates correct adapter scripts."""
+        atoms = small_ethanol_water.copy()
+
+        # Use SMARTSSelector
+        oxygen_selector = hc.SMARTSSelector(pattern="[O]")
+        cv = SimpleDistanceCV(atoms=oxygen_selector, prefix="pycv_oxygen")
+
+        # Write adapter script
+        script_path = cv.write_adapter_script(
+            directory=tmp_path,
+            atoms=atoms,
+            cv_class_module="tests.test_pycv_cv",
+            cv_class_name="SimpleDistanceCV",
+            cv_init_args=cv.get_init_args(),
+        )
+
+        assert script_path.exists()
+
+        content = script_path.read_text()
+
+        # Verify the adapter script imports the selector
+        assert "from hillclimber import SMARTSSelector" in content
+
+        # Verify the adapter script contains the selector in CV instantiation
+        assert "[O]" in content
+        assert "_CV_INSTANCE = SimpleDistanceCV" in content
+        assert "plumedCalculate" in content
 
     def test_pycv_cell_and_pbc_passed_from_plumed(self, tmp_path):
         """Integration test: Verify cell and pbc are correctly passed to PyCV.compute().

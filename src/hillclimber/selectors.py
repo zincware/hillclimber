@@ -144,6 +144,63 @@ class IndexSelector(AtomSelector):
 
 
 @dataclasses.dataclass
+class ElementSelector(AtomSelector):
+    """Select atoms by element symbol.
+
+    Parameters
+    ----------
+    symbols : list[str]
+        List of element symbols to select (e.g., ["C", "O"]).
+
+    Examples
+    --------
+    >>> selector = ElementSelector(symbols=["C", "O"])
+    >>> selector.select(atoms)  # Returns indices of all C and O atoms
+    [[0, 2, 5, 8]]  # Single group with all matching atoms
+    """
+
+    symbols: list[str]
+
+    def __getitem__(self, idx: int | slice | list[int]) -> AtomSelector:
+        """Group-level indexing."""
+        return _GroupIndexedSelector(self, idx)
+
+    def __add__(self, other: AtomSelector) -> AtomSelector:
+        """Combine two selectors."""
+        return _CombinedSelector([self, other])
+
+    def select(self, atoms: ase.Atoms) -> list[list[int]]:
+        return [[i for i, s in enumerate(atoms.symbols) if s in self.symbols]]
+
+
+@dataclasses.dataclass
+class HeavyAtomSelector(AtomSelector):
+    """Select all non-hydrogen atoms.
+
+    This is a convenience selector for the common case of excluding
+    hydrogen atoms from a selection, useful for RMSD calculations,
+    coordination numbers, and other CVs where hydrogens are not relevant.
+
+    Examples
+    --------
+    >>> selector = HeavyAtomSelector()
+    >>> selector.select(atoms)  # Returns indices of all non-H atoms
+    [[0, 1, 4, 5]]  # Single group with all heavy atoms
+    """
+
+    def __getitem__(self, idx: int | slice | list[int]) -> AtomSelector:
+        """Group-level indexing."""
+        return _GroupIndexedSelector(self, idx)
+
+    def __add__(self, other: AtomSelector) -> AtomSelector:
+        """Combine two selectors."""
+        return _CombinedSelector([self, other])
+
+    def select(self, atoms: ase.Atoms) -> list[list[int]]:
+        return [[i for i, s in enumerate(atoms.symbols) if s != "H"]]
+
+
+@dataclasses.dataclass
 class SMILESSelector(AtomSelector):
     """Select atoms based on a SMILES string.
 

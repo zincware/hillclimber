@@ -42,9 +42,7 @@ from hillclimber.pycv import PyCV
 
 
 class DistanceCV(PyCV):
-    """Custom distance CV between two atoms."""
-
-    atoms: list[int]  # Atom indices to use
+    """Custom distance CV between first two selected atoms."""
 
     def compute(self, atoms: Atoms) -> tuple[float, np.ndarray]:
         """Compute CV value and gradients.
@@ -52,7 +50,8 @@ class DistanceCV(PyCV):
         Parameters
         ----------
         atoms : Atoms
-            ASE Atoms object with current positions.
+            ASE Atoms object containing ONLY the selected atoms.
+            Indices start at 0 and go up to len(atoms) - 1.
 
         Returns
         -------
@@ -60,16 +59,39 @@ class DistanceCV(PyCV):
             CV value and gradients array of shape (n_atoms, 3).
         """
         positions = atoms.get_positions()
-        diff = positions[self.atoms[1]] - positions[self.atoms[0]]
+        diff = positions[1] - positions[0]
         distance = float(np.linalg.norm(diff))
 
-        # Compute gradients
+        # Compute gradients for the selected atoms
         grad = np.zeros((len(atoms), 3))
-        grad[self.atoms[0]] = -diff / distance
-        grad[self.atoms[1]] = diff / distance
+        grad[0] = -diff / distance
+        grad[1] = diff / distance
 
         return distance, grad
 ```
+
+### Atom Selection Options
+
+The `atoms` parameter in PyCV accepts three types of input:
+
+```python
+# Option 1: Direct indices (0-based)
+cv = DistanceCV(atoms=[0, 1], prefix="dist")
+
+# Option 2: None to select all atoms
+cv = DistanceCV(atoms=None, prefix="dist_all")
+
+# Option 3: AtomSelector for dynamic selection
+import hillclimber as hc
+
+cv = DistanceCV(atoms=hc.HeavyAtomSelector(), prefix="heavy")
+cv = DistanceCV(atoms=hc.ElementSelector(symbols=["C", "O"]), prefix="co")
+cv = DistanceCV(atoms=hc.SMARTSSelector(pattern="[OH]"), prefix="oh")
+```
+
+**Important**: In your `compute()` method:
+- The `atoms` parameter is an ASE Atoms object containing **only the selected atoms** (not the full system). Indices in this object start at 0.
+- `self.atoms` is still your original selector/list/None if you need to access it for any reason.
 
 ### Using PyCV with ZnTrack
 

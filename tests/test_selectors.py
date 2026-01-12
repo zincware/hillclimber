@@ -169,3 +169,101 @@ def test_selector_with_smarts(small_ethanol_water):
     combined = water_sel + ethanol_sel
     result = combined.select(small_ethanol_water)
     assert len(result) == 4  # 2 waters + 2 ethanols
+
+
+# --- Tests for ElementSelector and HeavyAtomSelector ---
+
+
+def test_element_selector():
+    """Test ElementSelector selects atoms by element symbol."""
+    atoms = ase.Atoms("CH3OH", positions=[[i, 0, 0] for i in range(6)])
+
+    # Select only carbon
+    selector = pn.ElementSelector(symbols=["C"])
+    assert selector.select(atoms) == [[0]]
+
+    # Select only oxygen
+    selector = pn.ElementSelector(symbols=["O"])
+    assert selector.select(atoms) == [[4]]
+
+    # Select carbon and oxygen
+    selector = pn.ElementSelector(symbols=["C", "O"])
+    assert selector.select(atoms) == [[0, 4]]
+
+    # Select hydrogen
+    selector = pn.ElementSelector(symbols=["H"])
+    assert selector.select(atoms) == [[1, 2, 3, 5]]
+
+
+def test_element_selector_indexing():
+    """Test ElementSelector supports indexing."""
+    atoms = ase.Atoms("CCOO", positions=[[i, 0, 0] for i in range(4)])
+
+    selector = pn.ElementSelector(symbols=["C", "O"])
+    # Returns single group [[0, 1, 2, 3]]
+    assert selector.select(atoms) == [[0, 1, 2, 3]]
+
+    # Index into the group
+    assert selector[0].select(atoms) == [[0, 1, 2, 3]]
+    assert selector[0][0].select(atoms) == [[0]]
+    assert selector[0][0:2].select(atoms) == [[0, 1]]
+
+
+def test_element_selector_combination():
+    """Test ElementSelector can be combined with other selectors."""
+    atoms = ase.Atoms("CHO", positions=[[0, 0, 0], [1, 0, 0], [2, 0, 0]])
+
+    carbon_sel = pn.ElementSelector(symbols=["C"])
+    oxygen_sel = pn.ElementSelector(symbols=["O"])
+
+    combined = carbon_sel + oxygen_sel
+    assert combined.select(atoms) == [[0], [2]]
+
+
+def test_heavy_atom_selector():
+    """Test HeavyAtomSelector excludes hydrogen atoms."""
+    atoms = ase.Atoms("CH3OH", positions=[[i, 0, 0] for i in range(6)])
+    # CH3OH: C(0), H(1), H(2), H(3), O(4), H(5)
+
+    selector = pn.HeavyAtomSelector()
+    assert selector.select(atoms) == [[0, 4]]  # Only C and O
+
+
+def test_heavy_atom_selector_all_heavy():
+    """Test HeavyAtomSelector with system containing no hydrogens."""
+    atoms = ase.Atoms("CO2", positions=[[0, 0, 0], [1.16, 0, 0], [-1.16, 0, 0]])
+
+    selector = pn.HeavyAtomSelector()
+    assert selector.select(atoms) == [[0, 1, 2]]  # All atoms
+
+
+def test_heavy_atom_selector_all_hydrogen():
+    """Test HeavyAtomSelector with system containing only hydrogens."""
+    atoms = ase.Atoms("H2", positions=[[0, 0, 0], [0.74, 0, 0]])
+
+    selector = pn.HeavyAtomSelector()
+    assert selector.select(atoms) == [[]]  # Empty list
+
+
+def test_heavy_atom_selector_indexing():
+    """Test HeavyAtomSelector supports indexing."""
+    atoms = ase.Atoms("CH4", positions=[[i, 0, 0] for i in range(5)])
+    # CH4: C(0), H(1), H(2), H(3), H(4)
+
+    selector = pn.HeavyAtomSelector()
+    assert selector.select(atoms) == [[0]]
+
+    # Index into the result
+    assert selector[0].select(atoms) == [[0]]
+    assert selector[0][0].select(atoms) == [[0]]
+
+
+def test_heavy_atom_selector_combination():
+    """Test HeavyAtomSelector can be combined with other selectors."""
+    atoms = ase.Atoms("CH4", positions=[[i, 0, 0] for i in range(5)])
+
+    heavy_sel = pn.HeavyAtomSelector()
+    index_sel = pn.IndexSelector(indices=[[1, 2]])  # Some hydrogens
+
+    combined = heavy_sel + index_sel
+    assert combined.select(atoms) == [[0], [1, 2]]
