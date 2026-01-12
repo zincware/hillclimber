@@ -587,14 +587,22 @@ def test_print_unbiased_cv(small_ethanol_water):
     assert result == expected
 
 
-def test_print_only_unbiased_cv(small_ethanol_water):
-    """Test that CVs can be printed with empty bias_cvs (Issue #18)."""
-    # CV for printing only (no biases at all) - AngleCV takes x1, x2, x3
-    unbiased_angle_cv = pn.AngleCV(
+def test_print_cv_used_in_both_bias_and_print(small_ethanol_water):
+    """Test that CVs used in both bias_cvs and PrintAction are deduplicated."""
+    # Same CV used for both biasing and printing
+    angle_cv = pn.AngleCV(
         x1=pn.IndexSelector(indices=[[0]]),
         x2=pn.IndexSelector(indices=[[1]]),
         x3=pn.IndexSelector(indices=[[2]]),
         prefix="angle",
+    )
+
+    biased_cv = pn.MetadBias(
+        cv=angle_cv,
+        sigma=0.1,
+        grid_min=-3.14159,
+        grid_max=3.14159,
+        grid_bin=100,
     )
 
     meta_d_config = pn.MetaDynamicsConfig(
@@ -606,17 +614,18 @@ def test_print_only_unbiased_cv(small_ethanol_water):
     meta_d_model = pn.MetaDynamicsModel(
         config=meta_d_config,
         data=small_ethanol_water,
-        bias_cvs=[],  # No biased CVs
-        actions=[pn.PrintAction(cvs=[unbiased_angle_cv], stride=50)],
+        bias_cvs=[biased_cv],  # CV used as bias
+        actions=[pn.PrintAction(cvs=[angle_cv], stride=50)],  # Same CV also printed
         model=None,  # type: ignore
     )
 
     result = meta_d_model.to_plumed(small_ethanol_water)
 
+    # The angle CV definition should appear only once (deduplicated)
     expected = [
         "UNITS LENGTH=A TIME=0.001 ENERGY=96.48533288249877",
-        "metad: METAD ARG= HEIGHT=1.0 PACE=500 TEMP=300.0 FILE=HILLS",
         "angle: ANGLE ATOMS=1,2,3",
+        "metad: METAD ARG=angle HEIGHT=1.0 PACE=500 TEMP=300.0 FILE=HILLS SIGMA=0.1 GRID_MIN=-3.14159 GRID_MAX=3.14159 GRID_BIN=100",
         "PRINT ARG=angle STRIDE=50 FILE=COLVAR",
     ]
 
