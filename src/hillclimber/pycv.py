@@ -34,19 +34,48 @@ class PyCV(ABC):
     Parameters
     ----------
     atoms : AtomSelector | list[int] | None
-        Atoms to pass to the CV. Either an AtomSelector, direct indices (0-based),
-        or None to select all atoms.
+        Atom selection for the CV. Accepts:
+
+        - ``list[int]``: Direct 0-based atom indices (e.g., ``[0, 1, 2]``)
+        - ``None``: Select all atoms in the system
+        - ``AtomSelector``: Dynamic selection using selectors like
+          ``IndexSelector``, ``ElementSelector``, ``HeavyAtomSelector``,
+          ``SMARTSSelector``, etc.
+
     prefix : str
         Label prefix for PLUMED commands.
 
+    Attributes
+    ----------
+    atoms : AtomSelector | list[int] | None
+        The original atom selection specification (selector, list, or None).
+        Access this in ``compute()`` via ``self.atoms`` if needed.
+
     Examples
     --------
+    Using direct indices:
+
+    >>> cv = MyDistanceCV(atoms=[0, 1], prefix="dist")
+
+    Using all atoms:
+
+    >>> cv = MyDistanceCV(atoms=None, prefix="all")
+
+    Using a selector:
+
+    >>> cv = MyDistanceCV(atoms=hc.HeavyAtomSelector(), prefix="heavy")
+    >>> cv = MyDistanceCV(atoms=hc.ElementSelector(symbols=["C", "O"]), prefix="co")
+    >>> cv = MyDistanceCV(atoms=hc.SMARTSSelector(pattern="[OH]"), prefix="oh")
+
+    Full example:
+
     >>> import hillclimber as hc
     >>> import numpy as np
     >>> from ase import Atoms
     >>>
     >>> class MyDistanceCV(hc.PyCV):
     ...     def compute(self, atoms: Atoms) -> tuple[float, np.ndarray]:
+    ...         # 'atoms' contains ONLY the selected atoms
     ...         positions = atoms.get_positions()
     ...         diff = positions[1] - positions[0]
     ...         dist = np.sqrt(np.sum(diff**2))
@@ -54,26 +83,25 @@ class PyCV(ABC):
     ...         grad[0] = -diff / dist
     ...         grad[1] = diff / dist
     ...         return dist, grad
-    >>>
-    >>> cv = MyDistanceCV(
-    ...     atoms=hc.IndexSelector(indices=[[0, 1]]),
-    ...     prefix="my_dist"
-    ... )
 
     Resources
     ---------
+    - https://www.plumed.org/doc-master/user-doc/html/_p_y_c_v_i_n_t_e_r_f_a_c_e.html
     - https://www.plumed-tutorials.org/lessons/24/015/data/GAT_SAFE_README.html
-    - https://joss.theoj.org/papers/10.21105/joss.01773
 
     Notes
     -----
-    The `compute()` method receives an ASE Atoms object with positions in
-    the same units as specified in the PLUMED UNITS line. When used with
-    hillclimber's MetaDynamicsModel, this is Angstrom (ASE default units).
+    In your ``compute()`` method:
 
-    If `compute()` returns gradients, the CV can be used for biasing
-    (metadynamics, restraints, etc.). If only a scalar is returned,
-    the CV can only be printed/monitored.
+    - The ``atoms`` parameter is an ASE Atoms object containing **only the
+      selected atoms** (not the full system). Indices in this object start
+      at 0 and go up to ``len(atoms) - 1``.
+    - ``self.atoms`` is still your original selector/list/None if you need
+      to access it for any reason.
+    - Positions are in Angstrom (ASE units) when using hillclimber's
+      MetaDynamicsModel.
+    - If ``compute()`` returns gradients, the CV can be used for biasing.
+      If only a scalar is returned, the CV can only be printed/monitored.
     """
 
     atoms: AtomSelector | list[int] | None
