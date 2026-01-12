@@ -467,3 +467,157 @@ def test_adaptive_multiple_cvs_different_sigma_raises_error(small_ethanol_water)
         match="When using ADAPTIVE=GEOM, all CVs must have the same sigma value",
     ):
         meta_d_model.to_plumed(small_ethanol_water)
+
+
+def test_cv_used_in_bias_and_print(small_ethanol_water):
+    """Test that a CV used in both bias_cvs and PrintAction is not duplicated."""
+    x1_selector = pn.SMILESSelector(smiles="CCO")
+    x2_selector = pn.SMILESSelector(smiles="O")
+
+    # Create a distance CV
+    distance_cv = pn.DistanceCV(
+        x1=pn.VirtualAtom(x1_selector[0], "com"),
+        x2=pn.VirtualAtom(x2_selector[0], "com"),
+        prefix="d",
+    )
+
+    # Use the same CV in both bias_cvs and PrintAction
+    biased_cv = pn.MetadBias(
+        cv=distance_cv,
+        sigma=0.2,
+        grid_min=0.0,
+        grid_max=5.0,
+        grid_bin=300,
+    )
+
+    meta_d_config = pn.MetaDynamicsConfig(
+        height=1.2,
+        pace=500,
+        biasfactor=10.0,
+        temp=300.0,
+    )
+
+    meta_d_model = pn.MetaDynamicsModel(
+        config=meta_d_config,
+        data=small_ethanol_water,
+        bias_cvs=[biased_cv],
+        actions=[pn.PrintAction(cvs=[distance_cv], stride=100)],
+        model=None,  # type: ignore
+    )
+
+    result = meta_d_model.to_plumed(small_ethanol_water)
+
+    # Check that the CV is defined only once
+    cv_definitions = [line for line in result if line.startswith("d:")]
+    assert len(cv_definitions) == 1, (
+        f"Expected 1 CV definition, got {len(cv_definitions)}: {cv_definitions}"
+    )
+
+    # Check that both METAD and PRINT are present
+    assert any("metad: METAD" in line for line in result)
+    assert any("PRINT ARG=d" in line for line in result)
+
+    # Expected structure - CV defined once, then METAD, then PRINT
+    expected = [
+        "UNITS LENGTH=A TIME=0.001 ENERGY=96.48533288249877",
+        "d_x1: COM ATOMS=1,2,3,4,5,6,7,8,9",
+        "d_x2: COM ATOMS=19,20,21",
+        "d: DISTANCE ATOMS=d_x1,d_x2",
+        "metad: METAD ARG=d HEIGHT=1.2 PACE=500 TEMP=300.0 FILE=HILLS BIASFACTOR=10.0 SIGMA=0.2 GRID_MIN=0.0 GRID_MAX=5.0 GRID_BIN=300",
+        "PRINT ARG=d STRIDE=100 FILE=COLVAR",
+    ]
+
+    assert result == expected
+
+
+def test_print_unbiased_cv(small_ethanol_water):
+    """Test that CVs can be printed without being in bias_cvs (Issue #18)."""
+    x1_selector = pn.SMILESSelector(smiles="CCO")
+    x2_selector = pn.SMILESSelector(smiles="O")
+
+    # CV for biasing
+    biased_distance_cv = pn.DistanceCV(
+        x1=pn.VirtualAtom(x1_selector[0], "com"),
+        x2=pn.VirtualAtom(x2_selector[0], "com"),
+        prefix="d_biased",
+    )
+
+    # CV for printing only (not biased) - AngleCV takes x1, x2, x3
+    unbiased_angle_cv = pn.AngleCV(
+        x1=pn.IndexSelector(indices=[[0]]),
+        x2=pn.IndexSelector(indices=[[1]]),
+        x3=pn.IndexSelector(indices=[[2]]),
+        prefix="angle_unbiased",
+    )
+
+    biased_cv = pn.MetadBias(
+        cv=biased_distance_cv,
+        sigma=0.1,
+        grid_min=0.0,
+        grid_max=5.0,
+        grid_bin=100,
+    )
+
+    meta_d_config = pn.MetaDynamicsConfig(
+        height=1.0,
+        pace=500,
+        temp=300.0,
+    )
+
+    meta_d_model = pn.MetaDynamicsModel(
+        config=meta_d_config,
+        data=small_ethanol_water,
+        bias_cvs=[biased_cv],
+        actions=[pn.PrintAction(cvs=[unbiased_angle_cv], stride=100)],
+        model=None,  # type: ignore
+    )
+
+    result = meta_d_model.to_plumed(small_ethanol_water)
+
+    expected = [
+        "UNITS LENGTH=A TIME=0.001 ENERGY=96.48533288249877",
+        "d_biased_x1: COM ATOMS=1,2,3,4,5,6,7,8,9",
+        "d_biased_x2: COM ATOMS=19,20,21",
+        "d_biased: DISTANCE ATOMS=d_biased_x1,d_biased_x2",
+        "metad: METAD ARG=d_biased HEIGHT=1.0 PACE=500 TEMP=300.0 FILE=HILLS SIGMA=0.1 GRID_MIN=0.0 GRID_MAX=5.0 GRID_BIN=100",
+        "angle_unbiased: ANGLE ATOMS=1,2,3",
+        "PRINT ARG=angle_unbiased STRIDE=100 FILE=COLVAR",
+    ]
+
+    assert result == expected
+
+
+def test_print_only_unbiased_cv(small_ethanol_water):
+    """Test that CVs can be printed with empty bias_cvs (Issue #18)."""
+    # CV for printing only (no biases at all) - AngleCV takes x1, x2, x3
+    unbiased_angle_cv = pn.AngleCV(
+        x1=pn.IndexSelector(indices=[[0]]),
+        x2=pn.IndexSelector(indices=[[1]]),
+        x3=pn.IndexSelector(indices=[[2]]),
+        prefix="angle",
+    )
+
+    meta_d_config = pn.MetaDynamicsConfig(
+        height=1.0,
+        pace=500,
+        temp=300.0,
+    )
+
+    meta_d_model = pn.MetaDynamicsModel(
+        config=meta_d_config,
+        data=small_ethanol_water,
+        bias_cvs=[],  # No biased CVs
+        actions=[pn.PrintAction(cvs=[unbiased_angle_cv], stride=50)],
+        model=None,  # type: ignore
+    )
+
+    result = meta_d_model.to_plumed(small_ethanol_water)
+
+    expected = [
+        "UNITS LENGTH=A TIME=0.001 ENERGY=96.48533288249877",
+        "metad: METAD ARG= HEIGHT=1.0 PACE=500 TEMP=300.0 FILE=HILLS",
+        "angle: ANGLE ATOMS=1,2,3",
+        "PRINT ARG=angle STRIDE=50 FILE=COLVAR",
+    ]
+
+    assert result == expected
