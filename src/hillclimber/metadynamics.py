@@ -273,6 +273,15 @@ class MetaDynamicsModel(zntrack.Node, NodeWithCalculator):
 
     def to_plumed(self, atoms: ase.Atoms) -> list[str]:
         """Generate PLUMED input string for the metadynamics model."""
+        # Validate that at least one bias CV is provided
+        # PLUMED METAD requires a non-empty ARG parameter
+        if not self.bias_cvs:
+            raise ValueError(
+                "MetaDynamicsModel requires at least one bias CV. "
+                "PLUMED METAD action requires a non-empty ARG parameter. "
+                "To only print CVs without biasing, use a different simulation method."
+            )
+
         # check for duplicate CV prefixes
         cv_labels = set()
         for bias_cv in self.bias_cvs:

@@ -40,14 +40,22 @@ class PrintAction(PlumedGenerator):
     file: str = "COLVAR"
 
     def to_plumed(self, atoms: ase.Atoms) -> list[str]:
-        """Convert the action node to a PLUMED input string."""
+        """Convert the action node to a PLUMED input string.
+
+        Returns CV definitions followed by the PRINT command. If these CVs
+        are also used elsewhere (e.g., in bias_cvs), the deduplication logic
+        in MetaDynamicsModel.to_plumed() will handle removing duplicates.
+        """
         all_labels = set()
+        all_cv_commands = []
+
         for cv in self.cvs:
-            labels, _ = cv.to_plumed(atoms)
+            labels, cv_commands = cv.to_plumed(atoms)
             all_labels.update(labels)
+            all_cv_commands.extend(cv_commands)
 
         # Create the PRINT command with the unique labels
         print_command = f"PRINT ARG={','.join(sorted(all_labels))} STRIDE={self.stride} FILE={self.file}"
 
-        # Return the command as a list
-        return [print_command]
+        # Return CV definitions followed by PRINT command
+        return all_cv_commands + [print_command]
