@@ -11,7 +11,13 @@ from hillclimber.cvs import (
 from hillclimber.metadynamics import MetadBias, MetaDynamicsConfig, MetaDynamicsModel
 from hillclimber.opes import OPESBias, OPESConfig, OPESModel
 from hillclimber.pycv import PyCV
-from hillclimber.selectors import IndexSelector, SMARTSSelector, SMILESSelector
+from hillclimber.selectors import (
+    ElementSelector,
+    HeavyAtomSelector,
+    IndexSelector,
+    SMARTSSelector,
+    SMILESSelector,
+)
 from hillclimber.virtual_atoms import VirtualAtom
 
 __all__ = [
@@ -21,6 +27,8 @@ __all__ = [
     "CoordinationNumberCV",
     "TorsionCV",
     "RadiusOfGyrationCV",
+    "ElementSelector",
+    "HeavyAtomSelector",
     "IndexSelector",
     "SMILESSelector",
     "SMARTSSelector",
